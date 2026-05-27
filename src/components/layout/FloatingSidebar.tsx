@@ -1,14 +1,21 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Library, Tags, Bookmark, UserCircle2, Settings, Shield } from "lucide-react";
 
-const ITEMS = [
+type SidebarItem = {
+  to: "/library" | "/genres" | "/profile" | "/settings" | "/admin";
+  label: string;
+  icon: typeof Library;
+  accent?: boolean;
+};
+
+const ITEMS: SidebarItem[] = [
   { to: "/library", label: "Library", icon: Library },
   { to: "/genres", label: "Genres", icon: Tags },
-  { to: "/library", label: "Watchlist", icon: Bookmark, hash: "watchlist" },
+  { to: "/library", label: "Watchlist", icon: Bookmark },
   { to: "/profile", label: "Profile", icon: UserCircle2 },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/admin", label: "Admin", icon: Shield, accent: true },
-] as const;
+];
 
 export function FloatingSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
