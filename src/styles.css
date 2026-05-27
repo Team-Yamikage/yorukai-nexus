@@ -4,19 +4,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
+/* ============================================================
+   YORUKAI.TV — SENPAI DESIGN SYSTEM
+   Cinematic cyberpunk anime UI tokens
+   ============================================================ */
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -25,7 +16,7 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -45,12 +36,6 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-ring-offset-background: var(--background);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -59,86 +44,349 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Senpai semantic tokens (also Tailwind utilities: bg-senpai-violet etc.) */
+  --color-senpai-bg: var(--senpai-bg);
+  --color-senpai-bg-2: var(--senpai-bg-2);
+  --color-senpai-bg-3: var(--senpai-bg-3);
+  --color-senpai-paper: var(--senpai-paper);
+  --color-senpai-paper-2: var(--senpai-paper-2);
+  --color-senpai-text: var(--senpai-text);
+  --color-senpai-text-dim: var(--senpai-text-dim);
+  --color-senpai-text-muted: var(--senpai-text-muted);
+  --color-senpai-violet: var(--senpai-violet);
+  --color-senpai-violet-2: var(--senpai-violet-2);
+  --color-senpai-teal: var(--senpai-teal);
+  --color-senpai-fuchsia: var(--senpai-fuchsia);
+  --color-senpai-pink: var(--senpai-pink);
+  --color-senpai-amber: var(--senpai-amber);
+  --color-senpai-orange: var(--senpai-orange);
+  --color-senpai-red: var(--senpai-red);
+  --color-senpai-green: var(--senpai-green);
+
+  --font-display: "Anton", "Bebas Neue", system-ui, sans-serif;
+  --font-mega: "Bowlby One", "Archivo Black", system-ui, sans-serif;
+  --font-heavy: "Archivo Black", "Anton", system-ui, sans-serif;
+  --font-sans: "Inter", "Space Grotesk", system-ui, sans-serif;
+  --font-grotesk: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-jp: "Noto Sans JP", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-hand: "Caveat", cursive;
+
+  --animate-aurora: aurora 18s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-glow-pulse: glow-pulse 3s ease-in-out infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-marquee: marquee 40s linear infinite;
+  --animate-fade-up: fade-up 0.6s ease-out;
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --radius: 0.75rem;
+
+  /* Senpai raw palette */
+  --senpai-bg: #07060a;
+  --senpai-bg-2: #0d0a14;
+  --senpai-bg-3: #15101e;
+  --senpai-paper: #f4ede2;
+  --senpai-paper-2: #ebe2d2;
+  --senpai-surface: rgba(20, 15, 32, 0.55);
+  --senpai-surface-strong: rgba(28, 22, 48, 0.85);
+  --senpai-border: rgba(255, 255, 255, 0.08);
+  --senpai-border-strong: rgba(255, 255, 255, 0.18);
+  --senpai-text: #f6f1ff;
+  --senpai-text-dim: #b9b1d4;
+  --senpai-text-muted: #6f6a8b;
+  --senpai-violet: #a16bff;
+  --senpai-violet-2: #7a3df5;
+  --senpai-teal: #2af0d9;
+  --senpai-fuchsia: #ff48d6;
+  --senpai-pink: #ff5d9f;
+  --senpai-amber: #ffc857;
+  --senpai-orange: #ff7a2e;
+  --senpai-red: #ff3b5b;
+  --senpai-green: #3ddc84;
+
+  /* Map shadcn tokens to senpai dark theme */
+  --background: var(--senpai-bg);
+  --foreground: var(--senpai-text);
+  --card: var(--senpai-bg-2);
+  --card-foreground: var(--senpai-text);
+  --popover: var(--senpai-bg-3);
+  --popover-foreground: var(--senpai-text);
+  --primary: var(--senpai-violet);
+  --primary-foreground: #0a0612;
+  --secondary: rgba(255, 255, 255, 0.06);
+  --secondary-foreground: var(--senpai-text);
+  --muted: rgba(255, 255, 255, 0.04);
+  --muted-foreground: var(--senpai-text-muted);
+  --accent: var(--senpai-fuchsia);
+  --accent-foreground: #0a0612;
+  --destructive: var(--senpai-red);
+  --destructive-foreground: #fff;
+  --border: var(--senpai-border);
+  --input: var(--senpai-border-strong);
+  --ring: var(--senpai-violet);
+  --sidebar: var(--senpai-bg-2);
+  --sidebar-foreground: var(--senpai-text);
+  --sidebar-primary: var(--senpai-violet);
+  --sidebar-primary-foreground: #fff;
+  --sidebar-accent: rgba(255, 255, 255, 0.06);
+  --sidebar-accent-foreground: var(--senpai-text);
+  --sidebar-border: var(--senpai-border);
+  --sidebar-ring: var(--senpai-violet);
 }
 
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+/* ============================================================
+   Keyframes
+   ============================================================ */
+
+@keyframes aurora {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0.55; }
+  33% { transform: translate3d(-8%, 6%, 0) rotate(8deg); opacity: 0.75; }
+  66% { transform: translate3d(7%, -5%, 0) rotate(-6deg); opacity: 0.65; }
 }
+@keyframes shimmer {
+  0% { transform: translateX(-120%) skewX(-12deg); }
+  100% { transform: translateX(220%) skewX(-12deg); }
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 24px rgba(161, 107, 255, 0.35), 0 0 60px rgba(122, 61, 245, 0.18); }
+  50% { box-shadow: 0 0 36px rgba(161, 107, 255, 0.6), 0 0 90px rgba(255, 72, 214, 0.28); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
 
 @layer base {
-  * {
-    border-color: var(--color-border);
+  * { border-color: var(--color-border); }
+  html, body { background-color: var(--senpai-bg); color: var(--senpai-text); }
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection { background: var(--senpai-violet); color: #0a0612; }
+}
+
+/* ============================================================
+   senpai-* component classes (mandatory)
+   ============================================================ */
+
+@layer components {
+  .senpai-root {
+    position: relative;
+    min-height: 100dvh;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(255, 72, 214, 0.14), transparent 60%),
+      radial-gradient(1000px 500px at -10% 20%, rgba(122, 61, 245, 0.18), transparent 60%),
+      radial-gradient(800px 400px at 50% 110%, rgba(42, 240, 217, 0.10), transparent 60%),
+      var(--senpai-bg);
+    color: var(--senpai-text);
+    overflow-x: hidden;
   }
 
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+  .senpai-glass {
+    background: var(--senpai-surface);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid var(--senpai-border);
+    border-radius: 1rem;
   }
+  .senpai-glass-strong {
+    background: var(--senpai-surface-strong);
+    backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid var(--senpai-border-strong);
+  }
+
+  .senpai-glow {
+    box-shadow:
+      0 0 0 1px rgba(161, 107, 255, 0.35),
+      0 0 24px rgba(161, 107, 255, 0.35),
+      0 0 60px rgba(122, 61, 245, 0.25);
+  }
+
+  .senpai-card-shadow {
+    box-shadow:
+      0 10px 30px -10px rgba(0, 0, 0, 0.6),
+      0 30px 80px -30px rgba(122, 61, 245, 0.35);
+  }
+
+  .senpai-grad-text {
+    background: linear-gradient(120deg, #fff 0%, #a16bff 40%, #ff48d6 70%, #2af0d9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .senpai-grad-text-fire {
+    background: linear-gradient(120deg, #ffc857 0%, #ff7a2e 45%, #ff3b5b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .senpai-grad-text-cyber {
+    background: linear-gradient(120deg, #2af0d9 0%, #a16bff 50%, #ff48d6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .senpai-stroke-text {
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgba(246, 241, 255, 0.65);
+  }
+
+  .senpai-aurora {
+    position: absolute;
+    inset: -20% -10%;
+    pointer-events: none;
+    background:
+      radial-gradient(40% 30% at 20% 30%, rgba(161, 107, 255, 0.55), transparent 60%),
+      radial-gradient(35% 30% at 80% 40%, rgba(255, 72, 214, 0.45), transparent 60%),
+      radial-gradient(30% 25% at 50% 80%, rgba(42, 240, 217, 0.40), transparent 60%);
+    filter: blur(60px);
+    animation: aurora 18s ease-in-out infinite;
+    opacity: 0.7;
+  }
+
+  .senpai-halftone {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1.2px);
+    background-size: 6px 6px;
+  }
+
+  .senpai-paper {
+    background-color: var(--senpai-paper);
+    background-image:
+      radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1.2px),
+      linear-gradient(180deg, var(--senpai-paper) 0%, var(--senpai-paper-2) 100%);
+    background-size: 4px 4px, 100% 100%;
+    color: #1a1024;
+  }
+
+  .senpai-noise::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.08;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.55'/></svg>");
+  }
+
+  .senpai-sticker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--senpai-border-strong);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--senpai-text);
+    backdrop-filter: blur(8px);
+  }
+
+  .senpai-marquee-track {
+    display: flex;
+    gap: 3rem;
+    width: max-content;
+    animation: marquee 40s linear infinite;
+  }
+
+  .senpai-poster {
+    position: relative;
+    border-radius: 1rem;
+    overflow: hidden;
+    isolation: isolate;
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.5s;
+    background: var(--senpai-bg-2);
+    border: 1px solid var(--senpai-border);
+    box-shadow:
+      0 10px 30px -10px rgba(0, 0, 0, 0.6),
+      0 30px 80px -30px rgba(122, 61, 245, 0.25);
+  }
+  .senpai-poster:hover {
+    transform: perspective(800px) rotateY(-4deg) rotateX(2deg) translateY(-6px) scale(1.02);
+    box-shadow:
+      0 20px 50px -10px rgba(0, 0, 0, 0.75),
+      0 0 0 1px rgba(161, 107, 255, 0.5),
+      0 30px 90px -20px rgba(255, 72, 214, 0.4);
+  }
+  .senpai-poster::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.18) 50%, transparent 70%);
+    transform: translateX(-120%) skewX(-12deg);
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .senpai-poster:hover::before {
+    opacity: 1;
+    animation: shimmer 1.6s ease-out;
+  }
+  .senpai-poster::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 45%, rgba(7, 6, 10, 0.92) 100%);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .senpai-duotone {
+    filter: saturate(1.05) contrast(1.05);
+    transition: filter 0.5s;
+  }
+  .senpai-poster:hover .senpai-duotone {
+    filter: saturate(1.3) contrast(1.15) hue-rotate(-8deg);
+  }
+
+  .senpai-mega {
+    font-family: var(--font-mega);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 0.85;
+    text-transform: uppercase;
+  }
+
+  .senpai-bg-grid {
+    background-image:
+      linear-gradient(rgba(161, 107, 255, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(161, 107, 255, 0.07) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 80%);
+  }
+
+  .senpai-scrollbar::-webkit-scrollbar { width: 10px; height: 10px; }
+  .senpai-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.03); }
+  .senpai-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--senpai-violet), var(--senpai-fuchsia));
+    border-radius: 999px;
+    border: 2px solid var(--senpai-bg);
+  }
+  .senpai-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--senpai-fuchsia), var(--senpai-teal));
+  }
+
+  html { scrollbar-color: var(--senpai-violet) transparent; scrollbar-width: thin; }
 }
