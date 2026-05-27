@@ -134,8 +134,8 @@ function AuthPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <OAuth icon={<ChromeIcon className="h-4 w-4" />} label="Google" />
-            <OAuth icon={<Github className="h-4 w-4" />} label="GitHub" />
+            <OAuth icon={<GoogleGlyph />} label="Google" />
+            <OAuth icon={<GitHubGlyph />} label="GitHub" />
           </div>
 
           <p className="mt-6 text-center text-xs text-senpai-text-muted">
