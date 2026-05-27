@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Mail, Lock, ArrowRight, Github, ChromeIcon } from "lucide-react";
+import { Mail, Lock, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
