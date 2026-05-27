@@ -9,15 +9,56 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as MangaRouteImport } from './routes/manga'
+import { Route as LiveTvRouteImport } from './routes/live-tv'
+import { Route as LibraryRouteImport } from './routes/library'
+import { Route as GenresRouteImport } from './routes/genres'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WatchIdRouteImport } from './routes/watch.$id'
+import { Route as ReaderIdRouteImport } from './routes/reader.$id'
+import { Route as MangaIdRouteImport } from './routes/manga.$id'
+import { Route as LiveWatchIdRouteImport } from './routes/live-watch.$id'
 import { Route as DetailIdRouteImport } from './routes/detail.$id'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MangaRoute = MangaRouteImport.update({
+  id: '/manga',
+  path: '/manga',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveTvRoute = LiveTvRouteImport.update({
+  id: '/live-tv',
+  path: '/live-tv',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GenresRoute = GenresRouteImport.update({
+  id: '/genres',
+  path: '/genres',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BrowseRoute = BrowseRouteImport.update({
@@ -30,9 +71,34 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WatchIdRoute = WatchIdRouteImport.update({
+  id: '/watch/$id',
+  path: '/watch/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReaderIdRoute = ReaderIdRouteImport.update({
+  id: '/reader/$id',
+  path: '/reader/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MangaIdRoute = MangaIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => MangaRoute,
+} as any)
+const LiveWatchIdRoute = LiveWatchIdRouteImport.update({
+  id: '/live-watch/$id',
+  path: '/live-watch/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DetailIdRoute = DetailIdRouteImport.update({
@@ -43,49 +109,183 @@ const DetailIdRoute = DetailIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
+  '/genres': typeof GenresRoute
+  '/library': typeof LibraryRoute
+  '/live-tv': typeof LiveTvRoute
+  '/manga': typeof MangaRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
   '/detail/$id': typeof DetailIdRoute
+  '/live-watch/$id': typeof LiveWatchIdRoute
+  '/manga/$id': typeof MangaIdRoute
+  '/reader/$id': typeof ReaderIdRoute
+  '/watch/$id': typeof WatchIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
+  '/genres': typeof GenresRoute
+  '/library': typeof LibraryRoute
+  '/live-tv': typeof LiveTvRoute
+  '/manga': typeof MangaRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
   '/detail/$id': typeof DetailIdRoute
+  '/live-watch/$id': typeof LiveWatchIdRoute
+  '/manga/$id': typeof MangaIdRoute
+  '/reader/$id': typeof ReaderIdRoute
+  '/watch/$id': typeof WatchIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
+  '/genres': typeof GenresRoute
+  '/library': typeof LibraryRoute
+  '/live-tv': typeof LiveTvRoute
+  '/manga': typeof MangaRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
   '/detail/$id': typeof DetailIdRoute
+  '/live-watch/$id': typeof LiveWatchIdRoute
+  '/manga/$id': typeof MangaIdRoute
+  '/reader/$id': typeof ReaderIdRoute
+  '/watch/$id': typeof WatchIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/browse' | '/search' | '/detail/$id'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/browse'
+    | '/genres'
+    | '/library'
+    | '/live-tv'
+    | '/manga'
+    | '/profile'
+    | '/search'
+    | '/settings'
+    | '/detail/$id'
+    | '/live-watch/$id'
+    | '/manga/$id'
+    | '/reader/$id'
+    | '/watch/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/browse' | '/search' | '/detail/$id'
-  id: '__root__' | '/' | '/auth' | '/browse' | '/search' | '/detail/$id'
+  to:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/browse'
+    | '/genres'
+    | '/library'
+    | '/live-tv'
+    | '/manga'
+    | '/profile'
+    | '/search'
+    | '/settings'
+    | '/detail/$id'
+    | '/live-watch/$id'
+    | '/manga/$id'
+    | '/reader/$id'
+    | '/watch/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/browse'
+    | '/genres'
+    | '/library'
+    | '/live-tv'
+    | '/manga'
+    | '/profile'
+    | '/search'
+    | '/settings'
+    | '/detail/$id'
+    | '/live-watch/$id'
+    | '/manga/$id'
+    | '/reader/$id'
+    | '/watch/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   BrowseRoute: typeof BrowseRoute
+  GenresRoute: typeof GenresRoute
+  LibraryRoute: typeof LibraryRoute
+  LiveTvRoute: typeof LiveTvRoute
+  MangaRoute: typeof MangaRouteWithChildren
+  ProfileRoute: typeof ProfileRoute
   SearchRoute: typeof SearchRoute
+  SettingsRoute: typeof SettingsRoute
   DetailIdRoute: typeof DetailIdRoute
+  LiveWatchIdRoute: typeof LiveWatchIdRoute
+  ReaderIdRoute: typeof ReaderIdRoute
+  WatchIdRoute: typeof WatchIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/search': {
       id: '/search'
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manga': {
+      id: '/manga'
+      path: '/manga'
+      fullPath: '/manga'
+      preLoaderRoute: typeof MangaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live-tv': {
+      id: '/live-tv'
+      path: '/live-tv'
+      fullPath: '/live-tv'
+      preLoaderRoute: typeof LiveTvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/genres': {
+      id: '/genres'
+      path: '/genres'
+      fullPath: '/genres'
+      preLoaderRoute: typeof GenresRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/browse': {
@@ -102,11 +302,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/watch/$id': {
+      id: '/watch/$id'
+      path: '/watch/$id'
+      fullPath: '/watch/$id'
+      preLoaderRoute: typeof WatchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reader/$id': {
+      id: '/reader/$id'
+      path: '/reader/$id'
+      fullPath: '/reader/$id'
+      preLoaderRoute: typeof ReaderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manga/$id': {
+      id: '/manga/$id'
+      path: '/$id'
+      fullPath: '/manga/$id'
+      preLoaderRoute: typeof MangaIdRouteImport
+      parentRoute: typeof MangaRoute
+    }
+    '/live-watch/$id': {
+      id: '/live-watch/$id'
+      path: '/live-watch/$id'
+      fullPath: '/live-watch/$id'
+      preLoaderRoute: typeof LiveWatchIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/detail/$id': {
@@ -119,12 +354,32 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface MangaRouteChildren {
+  MangaIdRoute: typeof MangaIdRoute
+}
+
+const MangaRouteChildren: MangaRouteChildren = {
+  MangaIdRoute: MangaIdRoute,
+}
+
+const MangaRouteWithChildren = MangaRoute._addFileChildren(MangaRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   BrowseRoute: BrowseRoute,
+  GenresRoute: GenresRoute,
+  LibraryRoute: LibraryRoute,
+  LiveTvRoute: LiveTvRoute,
+  MangaRoute: MangaRouteWithChildren,
+  ProfileRoute: ProfileRoute,
   SearchRoute: SearchRoute,
+  SettingsRoute: SettingsRoute,
   DetailIdRoute: DetailIdRoute,
+  LiveWatchIdRoute: LiveWatchIdRoute,
+  ReaderIdRoute: ReaderIdRoute,
+  WatchIdRoute: WatchIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
