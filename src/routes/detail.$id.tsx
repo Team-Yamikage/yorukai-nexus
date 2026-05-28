@@ -8,7 +8,7 @@ import { detailQuery, FALLBACK_BANNER, FALLBACK_POSTER } from "@/lib/api/content
 
 export const Route = createFileRoute("/detail/$id")({
   head: ({ loaderData }) => {
-    const c = loaderData?.content;
+    const c = (loaderData as { content?: { title: string; description: string | null; banner_url: string | null } } | undefined)?.content;
     return {
       meta: [
         { title: c ? `${c.title} — YORUKAI.TV` : "Detail — YORUKAI.TV" },
