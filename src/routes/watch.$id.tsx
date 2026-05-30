@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, SkipForward, Settings, Languages, ArrowLeft,
 import { episodeQuery, FALLBACK_POSTER, type ServerRow } from "@/lib/api/content";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { ShareButton } from "@/components/ShareButton";
 
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — YORUKAI.TV" }] }),
@@ -107,9 +108,12 @@ function Watch() {
         <Link to="/detail/$id" params={{ id: ep.content_id }} className="senpai-glass inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs uppercase tracking-widest hover:bg-white/10">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
-        <div className="text-right">
-          <div className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">{content?.title}</div>
-          <div className="font-[var(--font-display)] text-lg tracking-wide">S{ep.season_number} · E{ep.episode_number}{ep.title ? ` — ${ep.title}` : ""}</div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">{content?.title}</div>
+            <div className="font-[var(--font-display)] text-lg tracking-wide">S{ep.season_number} · E{ep.episode_number}{ep.title ? ` — ${ep.title}` : ""}</div>
+          </div>
+          <ShareButton title={content?.title} />
         </div>
       </header>
 
@@ -130,6 +134,10 @@ function Watch() {
                 className="absolute inset-0 h-full w-full"
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
+                referrerPolicy="no-referrer"
+                /* sandbox blocks popups + top-navigation so embeds can't
+                   redirect the page to ads or open popup windows */
+                sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
               />
             ) : (
               <>
@@ -186,15 +194,15 @@ function Watch() {
           {/* Bottom bar — servers + quality + language */}
           <div className="grid gap-4 border-t border-senpai-border p-4 sm:p-6 md:grid-cols-[1fr_auto]">
             <div className="flex flex-wrap gap-2">
-              <div className="font-[var(--font-mono)] mr-2 text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted self-center">Servers</div>
-              {data.servers.length === 0 && <span className="text-xs text-senpai-text-muted">No servers configured.</span>}
-              {data.servers.map((s) => (
+              <div className="font-[var(--font-mono)] mr-2 text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted self-center">Sources</div>
+              {data.servers.length === 0 && <span className="text-xs text-senpai-text-muted">No sources available.</span>}
+              {data.servers.map((s, i) => (
                 <button
                   key={s.id}
                   onClick={() => setActiveServer(s)}
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-widest ${activeServer?.id === s.id ? "bg-gradient-to-r from-senpai-violet to-senpai-fuchsia text-white shadow-[0_0_16px_-4px_var(--senpai-fuchsia)]" : "senpai-glass text-senpai-text-dim hover:text-white"}`}
                 >
-                  {s.server_name}
+                  Source {i + 1}
                 </button>
               ))}
             </div>
