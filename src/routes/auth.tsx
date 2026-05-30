@@ -1,7 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useState } from "react";
-import { Mail, Lock, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -17,6 +19,53 @@ const img = (s: string) => `https://picsum.photos/seed/${s}/1400/1800`;
 
 function AuthPage() {
   const [tab, setTab] = useState<"login" | "signup">("login");
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Already signed in → go home
+  useEffect(() => {
+    if (user) navigate({ to: "/" });
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setNotice(null);
+    setLoading(true);
+    try {
+      if (tab === "login") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        navigate({ to: "/" });
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: { display_name: displayName || email.split("@")[0] },
+          },
+        });
+        if (error) throw error;
+        if (data.session) {
+          navigate({ to: "/" });
+        } else {
+          setNotice("Account created. Check your email to confirm, then sign in.");
+          setTab("login");
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="senpai-root senpai-scrollbar relative grid min-h-dvh grid-cols-1 lg:grid-cols-[6fr_4fr]">
@@ -97,7 +146,8 @@ function AuthPage() {
             {(["login", "signup"] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => setTab(t)}
+                type="button"
+                onClick={() => { setTab(t); setError(null); setNotice(null); }}
                 className="relative rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest"
               >
                 {tab === t && (
@@ -113,30 +163,33 @@ function AuthPage() {
             ))}
           </div>
 
-          <form className="mt-6 space-y-4" onSubmit={(e) => e.preventDefault()}>
+          <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
             {tab === "signup" && (
-              <Field label="Display name" placeholder="senpai_07" icon={<UserGlyph />} />
+              <Field label="Display name" placeholder="senpai_07" icon={<UserGlyph />} value={displayName} onChange={setDisplayName} autoComplete="nickname" />
             )}
-            <Field label="Email" type="email" placeholder="you@beyond.tv" icon={<Mail className="h-4 w-4" />} />
-            <Field label="Password" type="password" placeholder="••••••••" icon={<Lock className="h-4 w-4" />} />
+            <Field label="Email" type="email" placeholder="you@beyond.tv" icon={<Mail className="h-4 w-4" />} value={email} onChange={setEmail} required autoComplete="email" />
+            <Field label="Password" type="password" placeholder="••••••••" icon={<Lock className="h-4 w-4" />} value={password} onChange={setPassword} required autoComplete={tab === "login" ? "current-password" : "new-password"} />
+
+            {error && (
+              <div className="rounded-xl bg-red-500/10 px-3.5 py-2.5 text-xs text-red-300 ring-1 ring-red-500/30">{error}</div>
+            )}
+            {notice && (
+              <div className="rounded-xl bg-senpai-teal/10 px-3.5 py-2.5 text-xs text-senpai-teal ring-1 ring-senpai-teal/30">{notice}</div>
+            )}
 
             <button
               type="submit"
-              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-senpai-violet via-senpai-fuchsia to-senpai-pink py-3 font-semibold text-white shadow-[0_12px_40px_-12px_var(--senpai-fuchsia)] transition-transform hover:scale-[1.01]"
+              disabled={loading}
+              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-senpai-violet via-senpai-fuchsia to-senpai-pink py-3 font-semibold text-white shadow-[0_12px_40px_-12px_var(--senpai-fuchsia)] transition-transform hover:scale-[1.01] disabled:opacity-60 disabled:hover:scale-100"
             >
-              {tab === "login" ? "Enter the night" : "Create account"}
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                <>
+                  {tab === "login" ? "Enter the night" : "Create account"}
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </>
+              )}
             </button>
           </form>
-
-          <div className="my-6 flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">
-            <span className="h-px flex-1 bg-senpai-border-strong" /> or continue with <span className="h-px flex-1 bg-senpai-border-strong" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <OAuth icon={<GoogleGlyph />} label="Google" />
-            <OAuth icon={<GitHubGlyph />} label="GitHub" />
-          </div>
 
           <p className="mt-6 text-center text-xs text-senpai-text-muted">
             By continuing you agree to the <span className="text-senpai-text-dim underline-offset-4 hover:underline">Terms</span> &{" "}
@@ -149,8 +202,11 @@ function AuthPage() {
 }
 
 function Field({
-  label, type = "text", placeholder, icon,
-}: { label: string; type?: string; placeholder?: string; icon: React.ReactNode }) {
+  label, type = "text", placeholder, icon, value, onChange, required, autoComplete,
+}: {
+  label: string; type?: string; placeholder?: string; icon: React.ReactNode;
+  value: string; onChange: (v: string) => void; required?: boolean; autoComplete?: string;
+}) {
   return (
     <label className="block">
       <span className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">{label}</span>
@@ -158,6 +214,10 @@ function Field({
         <span className="text-senpai-text-muted">{icon}</span>
         <input
           type={type}
+          required={required}
+          autoComplete={autoComplete}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className="w-full bg-transparent text-sm text-white placeholder:text-senpai-text-muted/70 outline-none"
         />
@@ -166,30 +226,10 @@ function Field({
   );
 }
 
-function OAuth({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <button className="senpai-glass flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10">
-      {icon} {label}
-    </button>
-  );
-}
-
 function UserGlyph() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-7 8-7s8 3 8 7" />
     </svg>
-  );
-}
-
-function GoogleGlyph() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 11v3.6h5.1c-.2 1.3-1.6 3.8-5.1 3.8-3.1 0-5.6-2.5-5.6-5.7s2.5-5.7 5.6-5.7c1.7 0 2.9.7 3.6 1.4l2.4-2.4C16.5 4.5 14.5 3.5 12 3.5 7.3 3.5 3.5 7.3 3.5 12s3.8 8.5 8.5 8.5c4.9 0 8.1-3.4 8.1-8.3 0-.6-.1-1-.1-1.5H12z"/></svg>
-  );
-}
-
-function GitHubGlyph() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.12-1.47-1.12-1.47-.92-.63.07-.62.07-.62 1.02.07 1.55 1.05 1.55 1.05.9 1.54 2.36 1.1 2.94.84.09-.66.35-1.1.64-1.36-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.56 9.56 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.86v2.76c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
   );
 }
