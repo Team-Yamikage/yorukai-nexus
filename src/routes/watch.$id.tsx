@@ -143,14 +143,12 @@ function Watch() {
               </div>
             ) : isEmbed ? (
               <iframe
+                key={activeServer.id}
                 src={activeServer.embed_url!}
                 className="absolute inset-0 h-full w-full"
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="no-referrer"
-                /* sandbox blocks popups + top-navigation so embeds can't
-                   redirect the page to ads or open popup windows */
-                sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
               />
             ) : (
               <>
