@@ -35,9 +35,22 @@ function Watch() {
   const qc = useQueryClient();
   const ep = data.episode!;
   const content = data.content;
-  const playableServers = data.servers.filter((s) => !!s.embed_url);
-  const directServers = data.servers.filter((s) => !s.embed_url);
-  const [activeServer, setActiveServer] = useState<ServerRow | null>(playableServers[0] ?? directServers[0] ?? null);
+  const servers = data.servers.filter((s) => !!s.embed_url);
+
+  // Group available servers by spoken language (audio track).
+  const languages = useMemo(() => {
+    const order = ["English", "Hindi", "Japanese", "Multi", "Tamil", "Telugu", "Malayalam", "Kannada", "Bengali"];
+    const set = Array.from(new Set(servers.map((s) => s.language).filter(Boolean))) as string[];
+    return set.sort((a, b) => ((order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99)));
+  }, [servers]);
+
+  const [activeLang, setActiveLang] = useState<string | null>(languages[0] ?? null);
+  const [serverIdx, setServerIdx] = useState(0);
+  const langServers = useMemo(
+    () => servers.filter((s) => s.language === activeLang),
+    [servers, activeLang],
+  );
+  const activeServer: ServerRow | null = langServers[serverIdx] ?? langServers[0] ?? servers[0] ?? null;
   const isEmbed = !!activeServer?.embed_url && /\.(m3u8|mp4|webm)(\?|$)/i.test(activeServer.embed_url) === false;
 
   const videoRef = useRef<HTMLVideoElement>(null);
