@@ -28,13 +28,19 @@ type RawChannel = {
   is_nsfw: boolean;
   closed: string | null;
 };
-type RawStream = { channel: string | null; url: string; quality: string | null };
+type RawStream = {
+  channel: string | null;
+  url: string;
+  quality: string | null;
+  user_agent: string | null;
+  referrer: string | null;
+};
 type RawLogo = { channel: string; url: string };
 
 /**
  * Securely fetch the list of Indian IPTV channels server-side.
  * Source: iptv-org public API. We only return channels that have a
- * working stream so the UI never shows dead entries.
+ * browser-playable stream so the UI never shows dead entries.
  */
 export const liveChannelsFn = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -44,10 +50,14 @@ export const liveChannelsFn = createServerFn({ method: "GET" }).handler(
       getJson<RawLogo[]>("logos.json"),
     ]);
 
-    // Map channel id -> first available stream
+    // Map channel id -> first browser-playable stream.
+    // Streams that require a custom user_agent or referrer can't be played
+    // from a browser <video> element, so we skip them to avoid dead tiles.
     const streamByChannel = new Map<string, RawStream>();
     for (const s of streams) {
       if (!s.channel || !s.url) continue;
+      if (s.user_agent || s.referrer) continue;
+      if (!/^https/i.test(s.url)) continue;
       if (!streamByChannel.has(s.channel)) streamByChannel.set(s.channel, s);
     }
     const logoByChannel = new Map<string, string>();

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
 import { ChevronLeft, ChevronRight, SkipForward, Settings, Languages, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
 import { episodeQuery, FALLBACK_POSTER, type ServerRow } from "@/lib/api/content";
@@ -35,9 +35,22 @@ function Watch() {
   const qc = useQueryClient();
   const ep = data.episode!;
   const content = data.content;
-  const playableServers = data.servers.filter((s) => !!s.embed_url);
-  const directServers = data.servers.filter((s) => !s.embed_url);
-  const [activeServer, setActiveServer] = useState<ServerRow | null>(playableServers[0] ?? directServers[0] ?? null);
+  const servers = data.servers.filter((s) => !!s.embed_url);
+
+  // Group available servers by spoken language (audio track).
+  const languages = useMemo(() => {
+    const order = ["English", "Hindi", "Japanese", "Multi", "Tamil", "Telugu", "Malayalam", "Kannada", "Bengali"];
+    const set = Array.from(new Set(servers.map((s) => s.language).filter(Boolean))) as string[];
+    return set.sort((a, b) => ((order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99)));
+  }, [servers]);
+
+  const [activeLang, setActiveLang] = useState<string | null>(languages[0] ?? null);
+  const [serverIdx, setServerIdx] = useState(0);
+  const langServers = useMemo(
+    () => servers.filter((s) => s.language === activeLang),
+    [servers, activeLang],
+  );
+  const activeServer: ServerRow | null = langServers[serverIdx] ?? langServers[0] ?? servers[0] ?? null;
   const isEmbed = !!activeServer?.embed_url && /\.(m3u8|mp4|webm)(\?|$)/i.test(activeServer.embed_url) === false;
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -130,14 +143,12 @@ function Watch() {
               </div>
             ) : isEmbed ? (
               <iframe
+                key={activeServer.id}
                 src={activeServer.embed_url!}
                 className="absolute inset-0 h-full w-full"
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="no-referrer"
-                /* sandbox blocks popups + top-navigation so embeds can't
-                   redirect the page to ads or open popup windows */
-                sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
               />
             ) : (
               <>
@@ -191,30 +202,38 @@ function Watch() {
             )}
           </div>
 
-          {/* Bottom bar — servers + quality + language */}
+          {/* Bottom bar — language (audio) selector */}
           <div className="grid gap-4 border-t border-senpai-border p-4 sm:p-6 md:grid-cols-[1fr_auto]">
             <div className="flex flex-wrap gap-2">
-              <div className="font-[var(--font-mono)] mr-2 text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted self-center">Sources</div>
-              {data.servers.length === 0 && <span className="text-xs text-senpai-text-muted">No sources available.</span>}
-              {data.servers.map((s, i) => (
+              <div className="font-[var(--font-mono)] mr-2 flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted self-center">
+                <Languages className="h-3.5 w-3.5" /> Language
+              </div>
+              {languages.length === 0 && <span className="text-xs text-senpai-text-muted">No playable language tracks yet.</span>}
+              {languages.map((lang) => (
                 <button
-                  key={s.id}
-                  onClick={() => setActiveServer(s)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-widest ${activeServer?.id === s.id ? "bg-gradient-to-r from-senpai-violet to-senpai-fuchsia text-white shadow-[0_0_16px_-4px_var(--senpai-fuchsia)]" : "senpai-glass text-senpai-text-dim hover:text-white"}`}
+                  key={lang}
+                  onClick={() => { setActiveLang(lang); setServerIdx(0); }}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-widest ${activeLang === lang ? "bg-gradient-to-r from-senpai-violet to-senpai-fuchsia text-white shadow-[0_0_16px_-4px_var(--senpai-fuchsia)]" : "senpai-glass text-senpai-text-dim hover:text-white"}`}
                 >
-                  Source {i + 1}
+                  {lang}
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-3 text-xs text-senpai-text-dim justify-end">
               {activeServer && (
-                <>
-                  <span className="inline-flex items-center gap-1"><Settings className="h-3.5 w-3.5" /> {activeServer.quality}</span>
-                  <span className="inline-flex items-center gap-1"><Languages className="h-3.5 w-3.5" /> {activeServer.language}</span>
-                </>
+                <span className="inline-flex items-center gap-1"><Settings className="h-3.5 w-3.5" /> {activeServer.quality}</span>
+              )}
+              {langServers.length > 1 && (
+                <button
+                  onClick={() => setServerIdx((i) => (i + 1) % langServers.length)}
+                  className="senpai-glass inline-flex items-center gap-1 rounded-full px-3 py-1.5 font-semibold uppercase tracking-widest text-senpai-text-dim hover:text-white"
+                >
+                  Not loading? Try another
+                </button>
               )}
             </div>
           </div>
+
         </div>
 
         {/* Prev/Next + Episode strip */}
