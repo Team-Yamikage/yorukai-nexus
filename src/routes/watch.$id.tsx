@@ -204,30 +204,38 @@ function Watch() {
             )}
           </div>
 
-          {/* Bottom bar — servers + quality + language */}
+          {/* Bottom bar — language (audio) selector */}
           <div className="grid gap-4 border-t border-senpai-border p-4 sm:p-6 md:grid-cols-[1fr_auto]">
             <div className="flex flex-wrap gap-2">
-              <div className="font-[var(--font-mono)] mr-2 text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted self-center">Sources</div>
-              {data.servers.length === 0 && <span className="text-xs text-senpai-text-muted">No sources available.</span>}
-              {data.servers.map((s, i) => (
+              <div className="font-[var(--font-mono)] mr-2 flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted self-center">
+                <Languages className="h-3.5 w-3.5" /> Language
+              </div>
+              {languages.length === 0 && <span className="text-xs text-senpai-text-muted">No playable language tracks yet.</span>}
+              {languages.map((lang) => (
                 <button
-                  key={s.id}
-                  onClick={() => setActiveServer(s)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-widest ${activeServer?.id === s.id ? "bg-gradient-to-r from-senpai-violet to-senpai-fuchsia text-white shadow-[0_0_16px_-4px_var(--senpai-fuchsia)]" : "senpai-glass text-senpai-text-dim hover:text-white"}`}
+                  key={lang}
+                  onClick={() => { setActiveLang(lang); setServerIdx(0); }}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-widest ${activeLang === lang ? "bg-gradient-to-r from-senpai-violet to-senpai-fuchsia text-white shadow-[0_0_16px_-4px_var(--senpai-fuchsia)]" : "senpai-glass text-senpai-text-dim hover:text-white"}`}
                 >
-                  Source {i + 1}
+                  {lang}
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-3 text-xs text-senpai-text-dim justify-end">
               {activeServer && (
-                <>
-                  <span className="inline-flex items-center gap-1"><Settings className="h-3.5 w-3.5" /> {activeServer.quality}</span>
-                  <span className="inline-flex items-center gap-1"><Languages className="h-3.5 w-3.5" /> {activeServer.language}</span>
-                </>
+                <span className="inline-flex items-center gap-1"><Settings className="h-3.5 w-3.5" /> {activeServer.quality}</span>
+              )}
+              {langServers.length > 1 && (
+                <button
+                  onClick={() => setServerIdx((i) => (i + 1) % langServers.length)}
+                  className="senpai-glass inline-flex items-center gap-1 rounded-full px-3 py-1.5 font-semibold uppercase tracking-widest text-senpai-text-dim hover:text-white"
+                >
+                  Not loading? Try another
+                </button>
               )}
             </div>
           </div>
+
         </div>
 
         {/* Prev/Next + Episode strip */}
