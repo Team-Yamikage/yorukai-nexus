@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -26,6 +27,11 @@ import { Route as MangaIdRouteImport } from './routes/manga.$id'
 import { Route as LiveWatchIdRouteImport } from './routes/live-watch.$id'
 import { Route as DetailIdRouteImport } from './routes/detail.$id'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/detail/$id': typeof DetailIdRoute
   '/live-watch/$id': typeof LiveWatchIdRoute
   '/manga/$id': typeof MangaIdRoute
@@ -137,6 +144,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/detail/$id': typeof DetailIdRoute
   '/live-watch/$id': typeof LiveWatchIdRoute
   '/manga/$id': typeof MangaIdRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/detail/$id': typeof DetailIdRoute
   '/live-watch/$id': typeof LiveWatchIdRoute
   '/manga/$id': typeof MangaIdRoute
@@ -176,6 +185,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/search'
     | '/settings'
+    | '/sitemap.xml'
     | '/detail/$id'
     | '/live-watch/$id'
     | '/manga/$id'
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/search'
     | '/settings'
+    | '/sitemap.xml'
     | '/detail/$id'
     | '/live-watch/$id'
     | '/manga/$id'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/search'
     | '/settings'
+    | '/sitemap.xml'
     | '/detail/$id'
     | '/live-watch/$id'
     | '/manga/$id'
@@ -231,6 +243,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   DetailIdRoute: typeof DetailIdRoute
   LiveWatchIdRoute: typeof LiveWatchIdRoute
   ReaderIdRoute: typeof ReaderIdRoute
@@ -239,6 +252,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -376,6 +396,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   DetailIdRoute: DetailIdRoute,
   LiveWatchIdRoute: LiveWatchIdRoute,
   ReaderIdRoute: ReaderIdRoute,
@@ -384,3 +405,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
