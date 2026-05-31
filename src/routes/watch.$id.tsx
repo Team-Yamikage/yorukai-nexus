@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
 import { ChevronLeft, ChevronRight, SkipForward, Settings, Languages, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
 import { episodeQuery, FALLBACK_POSTER, type ServerRow } from "@/lib/api/content";
