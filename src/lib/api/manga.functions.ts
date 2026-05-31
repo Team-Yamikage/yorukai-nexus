@@ -54,8 +54,13 @@ function mapManga(m: any): MangaItem {
 }
 
 async function getJson(path: string): Promise<any> {
+  // MangaDex returns 400 when the User-Agent header is empty (as it is by
+  // default in the Worker runtime), so we always send an explicit one.
   const res = await fetch(`${API}${path}`, {
-    headers: { accept: "application/json" },
+    headers: {
+      accept: "application/json",
+      "User-Agent": "YorukaiTV/1.0 (+https://neon-yokai.lovable.app)",
+    },
   });
   if (!res.ok) throw new Error(`MangaDex error ${res.status}`);
   return res.json();
