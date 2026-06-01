@@ -21,11 +21,13 @@ const ITEMS: SidebarItem[] = [
 
 export function FloatingSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const { isAdmin } = useAuth();
+  const items = ITEMS.filter((i) => !i.adminOnly || isAdmin);
 
   return (
     <aside className="pointer-events-none fixed left-4 top-1/2 z-40 hidden -translate-y-1/2 lg:block">
       <div className="senpai-glass senpai-glass-strong pointer-events-auto flex flex-col items-center gap-1 rounded-2xl p-2">
-        {ITEMS.map((item) => {
+        {items.map((item) => {
           const active = path === item.to;
           const Icon = item.icon;
           return (
