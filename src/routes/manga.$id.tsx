@@ -61,6 +61,7 @@ function Detail() {
                 key={c.id}
                 to="/reader/$id"
                 params={{ id: c.id }}
+                search={{ manga: id }}
                 className="senpai-glass flex items-center justify-between gap-4 rounded-xl px-4 py-3 text-sm hover:bg-white/5"
               >
                 <span className="font-semibold">
