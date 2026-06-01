@@ -23,21 +23,21 @@ function Reader() {
   const [idx, setIdx] = useState(0);
   const savedOnce = useRef(false);
 
-  // Resume from saved page (horizontal mode)
+  // Resume from saved page if returning to the same chapter
   useEffect(() => {
-    if (!user || savedOnce.current) return;
+    if (!user || !manga || savedOnce.current) return;
     supabase
       .from("manga_progress")
-      .select("page")
+      .select("page, chapter_id")
       .eq("user_id", user.id)
-      .eq("chapter_id", id)
+      .eq("manga_id", manga)
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.page) setIdx(Math.max(0, data.page - 1));
+        if (data?.chapter_id === id && data?.page) setIdx(Math.max(0, data.page - 1));
       });
-  }, [user, id]);
+  }, [user, manga, id]);
 
-  // Persist reading progress (debounced)
+  // Persist reading progress (debounced) — one row per manga (continue reading)
   useEffect(() => {
     if (!user || !manga || !pages || pages.length === 0) return;
     savedOnce.current = true;
@@ -51,7 +51,7 @@ function Reader() {
           total_pages: pages.length,
           updated_at: new Date().toISOString(),
         } as never,
-        { onConflict: "user_id,chapter_id" } as never,
+        { onConflict: "user_id,manga_id" } as never,
       ).then(() => {});
     }, 800);
     return () => clearTimeout(t);
