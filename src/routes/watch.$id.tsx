@@ -35,7 +35,8 @@ function Watch() {
   const qc = useQueryClient();
   const ep = data.episode!;
   const content = data.content;
-  const servers = data.servers.filter((s) => !!s.embed_url);
+  const BAD_HOST = /:\/\/(www\.)?(short\.icu|shorturl|adf\.ly|ouo\.io|linkvertise|exe\.io|gplinks|za\.gl|clk\.sh)/i;
+  const servers = data.servers.filter((s) => !!s.embed_url && !BAD_HOST.test(s.embed_url!));
 
   // Group available servers by spoken language (audio track).
   const languages = useMemo(() => {
@@ -149,6 +150,9 @@ function Watch() {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="no-referrer"
+                // Block ad pop-ups / forced top-level redirects while still
+                // allowing the embed's own player scripts to run.
+                sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
               />
             ) : (
               <>

@@ -89,7 +89,14 @@ function MangaCard({ m }: { m: MangaItem }) {
       className="senpai-poster group block aspect-[2/3] w-full"
     >
       {m.cover ? (
-        <img src={m.cover} alt={m.title} loading="lazy" className="senpai-duotone absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={m.cover}
+          alt={m.title}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          className="senpai-duotone absolute inset-0 h-full w-full object-cover"
+        />
       ) : (
         <div className="absolute inset-0 grid place-items-center bg-white/5"><BookOpen className="h-8 w-8 text-senpai-text-muted" /></div>
       )}

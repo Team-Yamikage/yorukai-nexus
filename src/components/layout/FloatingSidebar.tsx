@@ -1,11 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Library, Tags, Bookmark, UserCircle2, Settings, Shield } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 type SidebarItem = {
   to: "/library" | "/genres" | "/profile" | "/settings" | "/admin";
   label: string;
   icon: typeof Library;
   accent?: boolean;
+  adminOnly?: boolean;
 };
 
 const ITEMS: SidebarItem[] = [
@@ -14,16 +16,18 @@ const ITEMS: SidebarItem[] = [
   { to: "/library", label: "Watchlist", icon: Bookmark },
   { to: "/profile", label: "Profile", icon: UserCircle2 },
   { to: "/settings", label: "Settings", icon: Settings },
-  { to: "/admin", label: "Admin", icon: Shield, accent: true },
+  { to: "/admin", label: "Admin", icon: Shield, accent: true, adminOnly: true },
 ];
 
 export function FloatingSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const { isAdmin } = useAuth();
+  const items = ITEMS.filter((i) => !i.adminOnly || isAdmin);
 
   return (
     <aside className="pointer-events-none fixed left-4 top-1/2 z-40 hidden -translate-y-1/2 lg:block">
       <div className="senpai-glass senpai-glass-strong pointer-events-auto flex flex-col items-center gap-1 rounded-2xl p-2">
-        {ITEMS.map((item) => {
+        {items.map((item) => {
           const active = path === item.to;
           const Icon = item.icon;
           return (

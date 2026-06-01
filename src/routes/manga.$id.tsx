@@ -37,7 +37,7 @@ function Detail() {
 
       <div className="mt-6 grid gap-8 md:grid-cols-[260px_1fr]">
         <div className="senpai-poster relative mx-auto aspect-[2/3] w-full max-w-[260px]">
-          {manga.cover ? <img src={manga.cover} alt={manga.title} className="absolute inset-0 h-full w-full object-cover" /> : <div className="absolute inset-0 grid place-items-center bg-white/5"><BookOpen className="h-10 w-10" /></div>}
+          {manga.cover ? <img src={manga.cover} alt={manga.title} referrerPolicy="no-referrer" className="absolute inset-0 h-full w-full object-cover" /> : <div className="absolute inset-0 grid place-items-center bg-white/5"><BookOpen className="h-10 w-10" /></div>}
         </div>
         <div>
           <h1 className="font-[var(--font-display)] text-3xl sm:text-4xl tracking-wide text-white">{manga.title}</h1>
@@ -61,6 +61,7 @@ function Detail() {
                 key={c.id}
                 to="/reader/$id"
                 params={{ id: c.id }}
+                search={{ manga: id }}
                 className="senpai-glass flex items-center justify-between gap-4 rounded-xl px-4 py-3 text-sm hover:bg-white/5"
               >
                 <span className="font-semibold">
