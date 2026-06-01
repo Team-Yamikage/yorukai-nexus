@@ -77,9 +77,15 @@ function Reader() {
   return (
     <div className="min-h-dvh bg-black text-white">
       <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-white/10 bg-black/70 px-4 py-3 backdrop-blur">
-        <Link to={manga ? "/manga/$id" : "/manga"} params={manga ? ({ id: manga } as never) : (undefined as never)} className="senpai-glass inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs uppercase tracking-widest hover:bg-white/10">
-          <ArrowLeft className="h-4 w-4" /> Back
-        </Link>
+        {manga ? (
+          <Link to="/manga/$id" params={{ id: manga }} className="senpai-glass inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs uppercase tracking-widest hover:bg-white/10">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Link>
+        ) : (
+          <Link to="/manga" className="senpai-glass inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs uppercase tracking-widest hover:bg-white/10">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Link>
+        )}
         <div className="flex items-center gap-3">
           {pages && pages.length > 0 && (
             <span className="font-[var(--font-mono)] text-xs text-senpai-text-muted">{idx + 1} / {pages.length}</span>
