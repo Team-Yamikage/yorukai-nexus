@@ -249,6 +249,20 @@ function Watch() {
                   onPause={() => setPlaying(false)}
                   onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
                   onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+                  onError={(e) => {
+                    const mediaErr = e.currentTarget.error;
+                    const info = classifyPlaybackError({
+                      url: activeServer.embed_url,
+                      message: mediaErr?.message,
+                    });
+                    console.error("[watch] video error", {
+                      code: mediaErr?.code,
+                      message: mediaErr?.message,
+                      ...info,
+                      url: activeServer.embed_url,
+                    });
+                    setPlaybackError(info);
+                  }}
                   poster={ep.thumbnail_url || content?.banner_url || undefined}
                   controls={false}
                 />
