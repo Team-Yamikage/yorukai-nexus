@@ -35,44 +35,82 @@ function Watch() {
   const qc = useQueryClient();
   const ep = data.episode!;
   const content = data.content;
-  // Only the RPC-provided embed_url is required. We intentionally no longer
-  // block ad-supported short-link players (e.g. short.icu) — those are the
-  // actual sources for many episodes and now work since the iframe is no
-  // longer sandboxed (ads are allowed to load).
-  const servers = data.servers.filter((s) => !!s.embed_url);
+
+  // Server-side reachability results: serverId -> reachable.
+  const [health, setHealth] = useState<Record<string, boolean>>({});
+
+  // Only show sources that could plausibly play: http(s), not an image, not a
+  // known-dead/ad-redirect host (e.g. short.icu), and not flagged unreachable
+  // by the health probe.
+  const servers = useMemo(
+    () => playableServers(data.servers, health),
+    [data.servers, health],
+  );
+
+  // Probe the raw (pre-filter) candidates server-side so we can auto-disable
+  // dead sources. The browser can't HEAD cross-origin embeds (CORS), so this
+  // runs on the server.
+  useEffect(() => {
+    const candidates = data.servers
+      .filter((s) => !!s.embed_url && !isDeadHost(s.embed_url))
+      .slice(0, 20)
+      .map((s) => ({ id: s.id, url: s.embed_url! }));
+    if (candidates.length === 0) return;
+    let cancelled = false;
+    probeServers({ data: { servers: candidates } })
+      .then((res) => {
+        if (!cancelled) setHealth(res.health);
+      })
+      .catch((e) => console.warn("[watch] server health probe failed", e));
+    return () => {
+      cancelled = true;
+    };
+  }, [data.servers]);
 
   // Group available servers by spoken language (audio track).
-  const languages = useMemo(() => {
-    const order = ["English", "Hindi", "Japanese", "Multi", "Tamil", "Telugu", "Malayalam", "Kannada", "Bengali"];
-    const set = Array.from(new Set(servers.map((s) => s.language).filter(Boolean))) as string[];
-    return set.sort((a, b) => ((order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99)));
-  }, [servers]);
+  const languages = useMemo(() => languagesOf(servers), [servers]);
 
   const [activeLang, setActiveLang] = useState<string | null>(languages[0] ?? null);
   const [serverIdx, setServerIdx] = useState(0);
+
+  // Keep selection valid as the playable set changes (health probe results).
+  useEffect(() => {
+    if (languages.length === 0) {
+      setActiveLang(null);
+      return;
+    }
+    if (!activeLang || !languages.includes(activeLang)) {
+      setActiveLang(languages[0]);
+      setServerIdx(0);
+    }
+  }, [languages, activeLang]);
+
   const langServers = useMemo(
     () => servers.filter((s) => s.language === activeLang),
     [servers, activeLang],
   );
   const activeServer: ServerRow | null = langServers[serverIdx] ?? langServers[0] ?? servers[0] ?? null;
-  const isEmbed = !!activeServer?.embed_url && /\.(m3u8|mp4|webm)(\?|$)/i.test(activeServer.embed_url) === false;
+  const isEmbed = isEmbedUrl(activeServer?.embed_url);
 
-  // Cycle to the next available server. Tries the next server in the current
-  // language first, then falls back to the next language so the viewer always
-  // has another source to try when a player won't load.
+  // User-facing playback error (sandbox / CORS / expired / dns / network).
+  const [playbackError, setPlaybackError] = useState<{ reason: PlaybackErrorReason; label: string } | null>(null);
+
+  // Cycle to the next available server across languages.
   const tryAnother = () => {
-    if (langServers.length > 1 && serverIdx < langServers.length - 1) {
-      setServerIdx((i) => i + 1);
-      return;
-    }
-    if (languages.length > 1 && activeLang) {
-      const next = (languages.indexOf(activeLang) + 1) % languages.length;
-      setActiveLang(languages[next]);
-      setServerIdx(0);
-      return;
-    }
-    setServerIdx((i) => (langServers.length ? (i + 1) % langServers.length : 0));
+    setPlaybackError(null);
+    const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
+    setActiveLang(lang);
+    setServerIdx(index);
   };
+
+  // Jump directly to a chosen server (used by the server picker UI).
+  const pickServer = (s: ServerRow) => {
+    setPlaybackError(null);
+    setActiveLang(s.language);
+    const inLang = servers.filter((x) => x.language === s.language);
+    setServerIdx(Math.max(0, inLang.findIndex((x) => x.id === s.id)));
+  };
+
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
