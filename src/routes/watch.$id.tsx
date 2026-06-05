@@ -35,8 +35,11 @@ function Watch() {
   const qc = useQueryClient();
   const ep = data.episode!;
   const content = data.content;
-  const BAD_HOST = /:\/\/(www\.)?(short\.icu|shorturl|adf\.ly|ouo\.io|linkvertise|exe\.io|gplinks|za\.gl|clk\.sh)/i;
-  const servers = data.servers.filter((s) => !!s.embed_url && !BAD_HOST.test(s.embed_url!));
+  // Only the RPC-provided embed_url is required. We intentionally no longer
+  // block ad-supported short-link players (e.g. short.icu) — those are the
+  // actual sources for many episodes and now work since the iframe is no
+  // longer sandboxed (ads are allowed to load).
+  const servers = data.servers.filter((s) => !!s.embed_url);
 
   // Group available servers by spoken language (audio track).
   const languages = useMemo(() => {
@@ -53,6 +56,23 @@ function Watch() {
   );
   const activeServer: ServerRow | null = langServers[serverIdx] ?? langServers[0] ?? servers[0] ?? null;
   const isEmbed = !!activeServer?.embed_url && /\.(m3u8|mp4|webm)(\?|$)/i.test(activeServer.embed_url) === false;
+
+  // Cycle to the next available server. Tries the next server in the current
+  // language first, then falls back to the next language so the viewer always
+  // has another source to try when a player won't load.
+  const tryAnother = () => {
+    if (langServers.length > 1 && serverIdx < langServers.length - 1) {
+      setServerIdx((i) => i + 1);
+      return;
+    }
+    if (languages.length > 1 && activeLang) {
+      const next = (languages.indexOf(activeLang) + 1) % languages.length;
+      setActiveLang(languages[next]);
+      setServerIdx(0);
+      return;
+    }
+    setServerIdx((i) => (langServers.length ? (i + 1) % langServers.length : 0));
+  };
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -150,9 +170,10 @@ function Watch() {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="no-referrer"
-                // Block ad pop-ups / forced top-level redirects while still
-                // allowing the embed's own player scripts to run.
-                sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+                // NOTE: no `sandbox` attribute. Many free embed players detect a
+                // sandboxed iframe and refuse to play ("ads are not being
+                // displayed (AdBlock/Sandbox)…"). Removing the sandbox lets the
+                // player's own ad/script layer run so playback works.
               />
             ) : (
               <>
@@ -227,9 +248,19 @@ function Watch() {
               {activeServer && (
                 <span className="inline-flex items-center gap-1"><Settings className="h-3.5 w-3.5" /> {activeServer.quality}</span>
               )}
-              {langServers.length > 1 && (
+              {activeServer?.embed_url && (
+                <a
+                  href={activeServer.embed_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="senpai-glass inline-flex items-center gap-1 rounded-full px-3 py-1.5 font-semibold uppercase tracking-widest text-senpai-text-dim hover:text-white"
+                >
+                  Open in new tab
+                </a>
+              )}
+              {servers.length > 1 && (
                 <button
-                  onClick={() => setServerIdx((i) => (i + 1) % langServers.length)}
+                  onClick={tryAnother}
                   className="senpai-glass inline-flex items-center gap-1 rounded-full px-3 py-1.5 font-semibold uppercase tracking-widest text-senpai-text-dim hover:text-white"
                 >
                   Not loading? Try another
@@ -237,6 +268,7 @@ function Watch() {
               )}
             </div>
           </div>
+
 
         </div>
 
