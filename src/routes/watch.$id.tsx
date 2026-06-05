@@ -150,9 +150,10 @@ function Watch() {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="no-referrer"
-                // Block ad pop-ups / forced top-level redirects while still
-                // allowing the embed's own player scripts to run.
-                sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
+                // NOTE: no `sandbox` attribute. Many free embed players detect a
+                // sandboxed iframe and refuse to play ("ads are not being
+                // displayed (AdBlock/Sandbox)…"). Removing the sandbox lets the
+                // player's own ad/script layer run so playback works.
               />
             ) : (
               <>
