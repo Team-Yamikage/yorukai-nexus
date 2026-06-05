@@ -228,9 +228,19 @@ function Watch() {
               {activeServer && (
                 <span className="inline-flex items-center gap-1"><Settings className="h-3.5 w-3.5" /> {activeServer.quality}</span>
               )}
-              {langServers.length > 1 && (
+              {activeServer?.embed_url && (
+                <a
+                  href={activeServer.embed_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="senpai-glass inline-flex items-center gap-1 rounded-full px-3 py-1.5 font-semibold uppercase tracking-widest text-senpai-text-dim hover:text-white"
+                >
+                  Open in new tab
+                </a>
+              )}
+              {servers.length > 1 && (
                 <button
-                  onClick={() => setServerIdx((i) => (i + 1) % langServers.length)}
+                  onClick={tryAnother}
                   className="senpai-glass inline-flex items-center gap-1 rounded-full px-3 py-1.5 font-semibold uppercase tracking-widest text-senpai-text-dim hover:text-white"
                 >
                   Not loading? Try another
@@ -238,6 +248,7 @@ function Watch() {
               )}
             </div>
           </div>
+
 
         </div>
 
