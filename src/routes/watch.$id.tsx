@@ -35,8 +35,11 @@ function Watch() {
   const qc = useQueryClient();
   const ep = data.episode!;
   const content = data.content;
-  const BAD_HOST = /:\/\/(www\.)?(short\.icu|shorturl|adf\.ly|ouo\.io|linkvertise|exe\.io|gplinks|za\.gl|clk\.sh)/i;
-  const servers = data.servers.filter((s) => !!s.embed_url && !BAD_HOST.test(s.embed_url!));
+  // Only the RPC-provided embed_url is required. We intentionally no longer
+  // block ad-supported short-link players (e.g. short.icu) — those are the
+  // actual sources for many episodes and now work since the iframe is no
+  // longer sandboxed (ads are allowed to load).
+  const servers = data.servers.filter((s) => !!s.embed_url);
 
   // Group available servers by spoken language (audio track).
   const languages = useMemo(() => {
