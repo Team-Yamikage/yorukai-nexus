@@ -375,6 +375,38 @@ function Watch() {
             </div>
           </div>
 
+          {/* Server picker — choose any available source directly */}
+          {langServers.length > 0 && (
+            <div className="border-t border-senpai-border p-4 sm:p-6">
+              <div className="font-[var(--font-mono)] mb-3 flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">
+                <Settings className="h-3.5 w-3.5" /> Servers
+                <span className="ml-1 text-senpai-text-dim/70">({langServers.length} available · {activeLang})</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {langServers.map((s) => {
+                  const isActive = activeServer?.id === s.id;
+                  const reachable = health[s.id];
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => pickServer(s)}
+                      className={`group inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold tracking-wide transition-colors ${isActive ? "bg-gradient-to-r from-senpai-violet to-senpai-fuchsia text-white shadow-[0_0_16px_-4px_var(--senpai-fuchsia)]" : "senpai-glass text-senpai-text-dim hover:text-white"}`}
+                    >
+                      <span
+                        className={`h-2 w-2 rounded-full ${reachable === false ? "bg-red-500" : reachable ? "bg-emerald-400" : "bg-yellow-400/70"}`}
+                        title={reachable === false ? "Unreachable" : reachable ? "Online" : "Checking…"}
+                      />
+                      {s.server_name}
+                      <span className="opacity-60">· {s.quality}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+
+
 
         </div>
 
