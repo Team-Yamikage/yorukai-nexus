@@ -4,6 +4,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
 import { ChevronLeft, ChevronRight, SkipForward, Settings, Languages, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
 import { episodeQuery, FALLBACK_POSTER, type ServerRow } from "@/lib/api/content";
+import {
+  playableServers,
+  languagesOf,
+  isDeadHost,
+  isEmbedUrl,
+  nextServer,
+  classifyPlaybackError,
+  type PlaybackErrorReason,
+} from "@/lib/api/servers";
+import { probeServers } from "@/lib/api/server-health.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ShareButton } from "@/components/ShareButton";
@@ -35,44 +45,82 @@ function Watch() {
   const qc = useQueryClient();
   const ep = data.episode!;
   const content = data.content;
-  // Only the RPC-provided embed_url is required. We intentionally no longer
-  // block ad-supported short-link players (e.g. short.icu) — those are the
-  // actual sources for many episodes and now work since the iframe is no
-  // longer sandboxed (ads are allowed to load).
-  const servers = data.servers.filter((s) => !!s.embed_url);
+
+  // Server-side reachability results: serverId -> reachable.
+  const [health, setHealth] = useState<Record<string, boolean>>({});
+
+  // Only show sources that could plausibly play: http(s), not an image, not a
+  // known-dead/ad-redirect host (e.g. short.icu), and not flagged unreachable
+  // by the health probe.
+  const servers = useMemo(
+    () => playableServers(data.servers, health),
+    [data.servers, health],
+  );
+
+  // Probe the raw (pre-filter) candidates server-side so we can auto-disable
+  // dead sources. The browser can't HEAD cross-origin embeds (CORS), so this
+  // runs on the server.
+  useEffect(() => {
+    const candidates = data.servers
+      .filter((s) => !!s.embed_url && !isDeadHost(s.embed_url))
+      .slice(0, 20)
+      .map((s) => ({ id: s.id, url: s.embed_url! }));
+    if (candidates.length === 0) return;
+    let cancelled = false;
+    probeServers({ data: { servers: candidates } })
+      .then((res) => {
+        if (!cancelled) setHealth(res.health);
+      })
+      .catch((e) => console.warn("[watch] server health probe failed", e));
+    return () => {
+      cancelled = true;
+    };
+  }, [data.servers]);
 
   // Group available servers by spoken language (audio track).
-  const languages = useMemo(() => {
-    const order = ["English", "Hindi", "Japanese", "Multi", "Tamil", "Telugu", "Malayalam", "Kannada", "Bengali"];
-    const set = Array.from(new Set(servers.map((s) => s.language).filter(Boolean))) as string[];
-    return set.sort((a, b) => ((order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99)));
-  }, [servers]);
+  const languages = useMemo(() => languagesOf(servers), [servers]);
 
   const [activeLang, setActiveLang] = useState<string | null>(languages[0] ?? null);
   const [serverIdx, setServerIdx] = useState(0);
+
+  // Keep selection valid as the playable set changes (health probe results).
+  useEffect(() => {
+    if (languages.length === 0) {
+      setActiveLang(null);
+      return;
+    }
+    if (!activeLang || !languages.includes(activeLang)) {
+      setActiveLang(languages[0]);
+      setServerIdx(0);
+    }
+  }, [languages, activeLang]);
+
   const langServers = useMemo(
     () => servers.filter((s) => s.language === activeLang),
     [servers, activeLang],
   );
   const activeServer: ServerRow | null = langServers[serverIdx] ?? langServers[0] ?? servers[0] ?? null;
-  const isEmbed = !!activeServer?.embed_url && /\.(m3u8|mp4|webm)(\?|$)/i.test(activeServer.embed_url) === false;
+  const isEmbed = isEmbedUrl(activeServer?.embed_url);
 
-  // Cycle to the next available server. Tries the next server in the current
-  // language first, then falls back to the next language so the viewer always
-  // has another source to try when a player won't load.
+  // User-facing playback error (sandbox / CORS / expired / dns / network).
+  const [playbackError, setPlaybackError] = useState<{ reason: PlaybackErrorReason; label: string } | null>(null);
+
+  // Cycle to the next available server across languages.
   const tryAnother = () => {
-    if (langServers.length > 1 && serverIdx < langServers.length - 1) {
-      setServerIdx((i) => i + 1);
-      return;
-    }
-    if (languages.length > 1 && activeLang) {
-      const next = (languages.indexOf(activeLang) + 1) % languages.length;
-      setActiveLang(languages[next]);
-      setServerIdx(0);
-      return;
-    }
-    setServerIdx((i) => (langServers.length ? (i + 1) % langServers.length : 0));
+    setPlaybackError(null);
+    const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
+    setActiveLang(lang);
+    setServerIdx(index);
   };
+
+  // Jump directly to a chosen server (used by the server picker UI).
+  const pickServer = (s: ServerRow) => {
+    setPlaybackError(null);
+    setActiveLang(s.language);
+    const inLang = servers.filter((x) => x.language === s.language);
+    setServerIdx(Math.max(0, inLang.findIndex((x) => x.id === s.id)));
+  };
+
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -159,7 +207,11 @@ function Watch() {
               <div className="grid h-full place-items-center text-center p-8">
                 <div>
                   <div className="senpai-mega text-3xl senpai-grad-text-fire">NO SERVERS</div>
-                  <p className="mt-2 text-sm text-senpai-text-dim">This episode has no playable servers yet.</p>
+                  <p className="mt-2 text-sm text-senpai-text-dim">
+                    {data.servers.length > 0
+                      ? "All known sources for this episode are offline or unreachable right now."
+                      : "This episode has no playable servers yet."}
+                  </p>
                 </div>
               </div>
             ) : isEmbed ? (
@@ -170,6 +222,19 @@ function Watch() {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="no-referrer"
+                onLoad={() =>
+                  console.info("[watch] embed loaded", {
+                    server: activeServer.server_name,
+                    quality: activeServer.quality,
+                    language: activeServer.language,
+                    url: activeServer.embed_url,
+                  })
+                }
+                onError={() => {
+                  const info = classifyPlaybackError({ url: activeServer.embed_url });
+                  console.error("[watch] embed error", { ...info, url: activeServer.embed_url });
+                  setPlaybackError(info);
+                }}
                 // NOTE: no `sandbox` attribute. Many free embed players detect a
                 // sandboxed iframe and refuse to play ("ads are not being
                 // displayed (AdBlock/Sandbox)…"). Removing the sandbox lets the
@@ -184,6 +249,20 @@ function Watch() {
                   onPause={() => setPlaying(false)}
                   onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
                   onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+                  onError={(e) => {
+                    const mediaErr = e.currentTarget.error;
+                    const info = classifyPlaybackError({
+                      url: activeServer.embed_url,
+                      message: mediaErr?.message,
+                    });
+                    console.error("[watch] video error", {
+                      code: mediaErr?.code,
+                      message: mediaErr?.message,
+                      ...info,
+                      url: activeServer.embed_url,
+                    });
+                    setPlaybackError(info);
+                  }}
                   poster={ep.thumbnail_url || content?.banner_url || undefined}
                   controls={false}
                 />
@@ -225,7 +304,34 @@ function Watch() {
                 <SkipForward className="h-3.5 w-3.5" /> Skip Intro
               </button>
             )}
+
+            {/* Playback error reason overlay */}
+            {playbackError && activeServer && (
+              <div className="absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-3 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-6 text-center">
+                <p className="max-w-md text-sm text-senpai-text-dim">
+                  <span className="font-semibold text-white">Can’t play this source.</span>{" "}
+                  {playbackError.label}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {servers.length > 1 && (
+                    <button
+                      onClick={tryAnother}
+                      className="rounded-full bg-gradient-to-r from-senpai-violet to-senpai-fuchsia px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white"
+                    >
+                      Try another server
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setPlaybackError(null)}
+                    className="senpai-glass rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest text-senpai-text-dim hover:text-white"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+
 
           {/* Bottom bar — language (audio) selector */}
           <div className="grid gap-4 border-t border-senpai-border p-4 sm:p-6 md:grid-cols-[1fr_auto]">
@@ -268,6 +374,38 @@ function Watch() {
               )}
             </div>
           </div>
+
+          {/* Server picker — choose any available source directly */}
+          {langServers.length > 0 && (
+            <div className="border-t border-senpai-border p-4 sm:p-6">
+              <div className="font-[var(--font-mono)] mb-3 flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">
+                <Settings className="h-3.5 w-3.5" /> Servers
+                <span className="ml-1 text-senpai-text-dim/70">({langServers.length} available · {activeLang})</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {langServers.map((s) => {
+                  const isActive = activeServer?.id === s.id;
+                  const reachable = health[s.id];
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => pickServer(s)}
+                      className={`group inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold tracking-wide transition-colors ${isActive ? "bg-gradient-to-r from-senpai-violet to-senpai-fuchsia text-white shadow-[0_0_16px_-4px_var(--senpai-fuchsia)]" : "senpai-glass text-senpai-text-dim hover:text-white"}`}
+                    >
+                      <span
+                        className={`h-2 w-2 rounded-full ${reachable === false ? "bg-red-500" : reachable ? "bg-emerald-400" : "bg-yellow-400/70"}`}
+                        title={reachable === false ? "Unreachable" : reachable ? "Online" : "Checking…"}
+                      />
+                      {s.server_name}
+                      <span className="opacity-60">· {s.quality}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+
 
 
         </div>
