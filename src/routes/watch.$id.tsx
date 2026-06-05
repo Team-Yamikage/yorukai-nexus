@@ -4,6 +4,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
 import { ChevronLeft, ChevronRight, SkipForward, Settings, Languages, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
 import { episodeQuery, FALLBACK_POSTER, type ServerRow } from "@/lib/api/content";
+import {
+  playableServers,
+  languagesOf,
+  isDeadHost,
+  isEmbedUrl,
+  nextServer,
+  classifyPlaybackError,
+  type PlaybackErrorReason,
+} from "@/lib/api/servers";
+import { probeServers } from "@/lib/api/server-health.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ShareButton } from "@/components/ShareButton";
