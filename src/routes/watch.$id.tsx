@@ -207,7 +207,11 @@ function Watch() {
               <div className="grid h-full place-items-center text-center p-8">
                 <div>
                   <div className="senpai-mega text-3xl senpai-grad-text-fire">NO SERVERS</div>
-                  <p className="mt-2 text-sm text-senpai-text-dim">This episode has no playable servers yet.</p>
+                  <p className="mt-2 text-sm text-senpai-text-dim">
+                    {data.servers.length > 0
+                      ? "All known sources for this episode are offline or unreachable right now."
+                      : "This episode has no playable servers yet."}
+                  </p>
                 </div>
               </div>
             ) : isEmbed ? (
@@ -218,6 +222,19 @@ function Watch() {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="no-referrer"
+                onLoad={() =>
+                  console.info("[watch] embed loaded", {
+                    server: activeServer.server_name,
+                    quality: activeServer.quality,
+                    language: activeServer.language,
+                    url: activeServer.embed_url,
+                  })
+                }
+                onError={() => {
+                  const info = classifyPlaybackError({ url: activeServer.embed_url });
+                  console.error("[watch] embed error", { ...info, url: activeServer.embed_url });
+                  setPlaybackError(info);
+                }}
                 // NOTE: no `sandbox` attribute. Many free embed players detect a
                 // sandboxed iframe and refuse to play ("ads are not being
                 // displayed (AdBlock/Sandbox)…"). Removing the sandbox lets the
