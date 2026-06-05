@@ -54,6 +54,23 @@ function Watch() {
   const activeServer: ServerRow | null = langServers[serverIdx] ?? langServers[0] ?? servers[0] ?? null;
   const isEmbed = !!activeServer?.embed_url && /\.(m3u8|mp4|webm)(\?|$)/i.test(activeServer.embed_url) === false;
 
+  // Cycle to the next available server. Tries the next server in the current
+  // language first, then falls back to the next language so the viewer always
+  // has another source to try when a player won't load.
+  const tryAnother = () => {
+    if (langServers.length > 1 && serverIdx < langServers.length - 1) {
+      setServerIdx((i) => i + 1);
+      return;
+    }
+    if (languages.length > 1 && activeLang) {
+      const next = (languages.indexOf(activeLang) + 1) % languages.length;
+      setActiveLang(languages[next]);
+      setServerIdx(0);
+      return;
+    }
+    setServerIdx((i) => (langServers.length ? (i + 1) % langServers.length : 0));
+  };
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
