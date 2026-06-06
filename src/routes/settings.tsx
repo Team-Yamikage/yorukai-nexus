@@ -39,6 +39,11 @@ function SettingsPage() {
   const [skipIntro, setSkipIntro] = usePref("yk_pref_skipintro", "on");
   const [reduceMotion, setReduceMotion] = usePref("yk_pref_reducemotion", "off");
 
+  // Apply reduce-motion globally so the preference has a real effect site-wide.
+  useEffect(() => {
+    document.documentElement.classList.toggle("yk-reduce-motion", reduceMotion === "on");
+  }, [reduceMotion]);
+
   return (
     <section className="relative mx-auto max-w-3xl px-4 sm:px-8 pt-10 pb-32">
       <span className="senpai-sticker"><SettingsIcon className="h-3 w-3" /> Preferences</span>

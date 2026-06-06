@@ -1,8 +1,14 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { GlassNavbar } from "./GlassNavbar";
 import { FloatingSidebar } from "./FloatingSidebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  // Apply the saved "reduce motion" preference on every page load.
+  useEffect(() => {
+    const reduce = localStorage.getItem("yk_pref_reducemotion") === "on";
+    document.documentElement.classList.toggle("yk-reduce-motion", reduce);
+  }, []);
+
   return (
     <div className="senpai-root senpai-scrollbar relative">
       {/* Atmospheric layers */}

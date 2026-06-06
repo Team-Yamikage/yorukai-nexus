@@ -390,3 +390,14 @@
 
   html { scrollbar-color: var(--senpai-violet) transparent; scrollbar-width: thin; }
 }
+
+/* Reduce-motion preference (toggled from Settings). Disables animations,
+   transitions and smooth scrolling site-wide for users who opt in. */
+html.yk-reduce-motion *,
+html.yk-reduce-motion *::before,
+html.yk-reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
