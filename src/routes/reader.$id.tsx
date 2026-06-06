@@ -1,10 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Rows, Columns } from "lucide-react";
+import { ArrowLeft, Rows, Columns, Play, Pause } from "lucide-react";
 import { chapterPagesQuery } from "@/lib/api/manga.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+
+/** Swap a failed full-res page image to its data-saver fallback once. */
+function onPageError(e: React.SyntheticEvent<HTMLImageElement>, fallback: string) {
+  const img = e.currentTarget;
+  if (img.dataset.fellback === "1" || img.src === fallback) return;
+  img.dataset.fellback = "1";
+  img.src = fallback;
+}
 
 export const Route = createFileRoute("/reader/$id")({
   head: () => ({ meta: [{ title: "Reader — YORUKAI.TV" }] }),
