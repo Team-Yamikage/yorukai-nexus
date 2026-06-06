@@ -131,6 +131,23 @@ function Reader() {
             <span className="font-[var(--font-mono)] text-xs text-senpai-text-muted">{idx + 1} / {pages.length}</span>
           )}
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAutoRead((v) => !v)}
+              aria-label={autoRead ? "Pause auto-read" : "Start auto-read"}
+              className={`grid h-9 w-9 place-items-center rounded-full ${autoRead ? "bg-gradient-to-r from-senpai-violet to-senpai-fuchsia" : "senpai-glass"}`}
+            >
+              {autoRead ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </button>
+            <select
+              value={speed}
+              onChange={(e) => setSpeed(Number(e.target.value))}
+              aria-label="Auto-read speed"
+              className="senpai-glass h-9 rounded-full bg-transparent px-2 text-xs outline-none [&>option]:bg-black"
+            >
+              <option value={3}>Fast 3s</option>
+              <option value={6}>Normal 6s</option>
+              <option value={10}>Slow 10s</option>
+            </select>
             <button onClick={() => setMode("vertical")} className={`grid h-9 w-9 place-items-center rounded-full ${mode === "vertical" ? "bg-gradient-to-r from-senpai-violet to-senpai-fuchsia" : "senpai-glass"}`}><Rows className="h-4 w-4" /></button>
             <button onClick={() => setMode("horizontal")} className={`grid h-9 w-9 place-items-center rounded-full ${mode === "horizontal" ? "bg-gradient-to-r from-senpai-violet to-senpai-fuchsia" : "senpai-glass"}`}><Columns className="h-4 w-4" /></button>
           </div>
