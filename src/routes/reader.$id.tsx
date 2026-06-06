@@ -29,7 +29,39 @@ function Reader() {
   const { data: pages, isLoading, isError } = useQuery(chapterPagesQuery(id));
   const [mode, setMode] = useState<"vertical" | "horizontal">("vertical");
   const [idx, setIdx] = useState(0);
+  const [autoRead, setAutoRead] = useState(false);
+  // Reading speed preference (seconds per page), saved per user/device.
+  const [speed, setSpeed] = useState<number>(() => {
+    if (typeof window === "undefined") return 6;
+    return Number(localStorage.getItem("yk_pref_reader_speed")) || 6;
+  });
   const savedOnce = useRef(false);
+
+  useEffect(() => {
+    localStorage.setItem("yk_pref_reader_speed", String(speed));
+  }, [speed]);
+
+  // Auto-read: advance pages at the chosen speed (MangaDex/Mangaverse style).
+  useEffect(() => {
+    if (!autoRead || !pages || pages.length === 0) return;
+    const t = setInterval(() => {
+      if (mode === "vertical") {
+        window.scrollBy({ top: window.innerHeight * 0.9, behavior: "smooth" });
+        if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4) {
+          setAutoRead(false);
+        }
+      } else {
+        setIdx((i) => {
+          if (i >= pages.length - 1) {
+            setAutoRead(false);
+            return i;
+          }
+          return i + 1;
+        });
+      }
+    }, Math.max(1, speed) * 1000);
+    return () => clearInterval(t);
+  }, [autoRead, speed, mode, pages]);
 
   // Resume from saved page if returning to the same chapter
   useEffect(() => {
