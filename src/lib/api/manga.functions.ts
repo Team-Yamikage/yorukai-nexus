@@ -146,15 +146,30 @@ export const mangaChaptersFn = createServerFn({ method: "GET" })
     return deduped;
   });
 
+export type ChapterPage = {
+  /** Full-quality image URL. */
+  url: string;
+  /** Compressed data-saver fallback used if the full image fails to load. */
+  fallback: string;
+};
+
 /** Page image URLs for a chapter (resolved via MangaDex@Home). */
 export const chapterPagesFn = createServerFn({ method: "GET" })
   .inputValidator((input: { chapterId: string }) => input)
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<ChapterPage[]> => {
     const json = await getJson(`/at-home/server/${data.chapterId}`);
     const base = json.baseUrl;
     const hash = json.chapter?.hash;
     const files: string[] = json.chapter?.data ?? [];
-    return files.map((f) => `${base}/data/${hash}/${f}`);
+    const saver: string[] = json.chapter?.dataSaver ?? [];
+    return files.map((f, i) => ({
+      url: `${base}/data/${hash}/${f}`,
+      // Data-saver images are smaller/JPEG and resolve from the same node,
+      // so they are a reliable fallback when a full-res page 404s/times out.
+      fallback: saver[i]
+        ? `${base}/data-saver/${hash}/${saver[i]}`
+        : `${base}/data/${hash}/${f}`,
+    }));
   });
 
 export const mangaListQuery = (
