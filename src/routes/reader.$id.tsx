@@ -160,14 +160,28 @@ function Reader() {
       {pages && mode === "vertical" && (
         <div ref={containerRef} className="mx-auto flex max-w-3xl flex-col">
           {pages.map((p, i) => (
-            <img key={i} src={p} alt={`Page ${i + 1}`} loading="lazy" referrerPolicy="no-referrer" className="w-full" />
+            <img
+              key={i}
+              src={p.url}
+              alt={`Page ${i + 1}`}
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={(e) => onPageError(e, p.fallback)}
+              className="w-full"
+            />
           ))}
         </div>
       )}
 
       {pages && pages.length > 0 && mode === "horizontal" && (
         <div className="relative mx-auto grid min-h-[calc(100dvh-57px)] max-w-3xl place-items-center">
-          <img src={pages[idx]} alt={`Page ${idx + 1}`} referrerPolicy="no-referrer" className="max-h-[calc(100dvh-120px)] w-auto" />
+          <img
+            src={pages[idx].url}
+            alt={`Page ${idx + 1}`}
+            referrerPolicy="no-referrer"
+            onError={(e) => onPageError(e, pages[idx].fallback)}
+            className="max-h-[calc(100dvh-120px)] w-auto"
+          />
           <div className="absolute inset-y-0 left-0 w-1/3 cursor-pointer" onClick={() => setIdx((i) => Math.max(0, i - 1))} />
           <div className="absolute inset-y-0 right-0 w-1/3 cursor-pointer" onClick={() => setIdx((i) => Math.min(pages.length - 1, i + 1))} />
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-4 py-1.5 text-xs">{idx + 1} / {pages.length}</div>
