@@ -43,12 +43,16 @@ function AdminGate() {
 
   return (
     <AppShell>
-      <StubPage
-        kicker="こんにちは admin"
-        title="Konnichiwa"
-        gradient="fire"
-        copy="Cyberpunk control center — KPIs, DAU charts, moderation, CDN & server health, reports. Builds next pass."
-      />
+      <div className="mx-auto max-w-6xl px-4 sm:px-8 pt-10 pb-32">
+        <div className="mb-10">
+          <div className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">こんにちは admin</div>
+          <h1 className="senpai-mega mt-2 text-5xl sm:text-6xl senpai-grad-text-fire">CONTROL CENTER</h1>
+          <p className="mt-3 max-w-2xl text-sm text-senpai-text-dim">
+            Moderation tools for the platform. Ban abusive devices or accounts and manage active restrictions.
+          </p>
+        </div>
+        <AdminBansPanel />
+      </div>
     </AppShell>
   );
 }
