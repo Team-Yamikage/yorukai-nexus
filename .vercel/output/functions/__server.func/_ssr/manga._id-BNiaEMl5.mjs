@@ -1,0 +1,42 @@
+import { j as jsxRuntimeExports } from "../_libs/react.mjs";
+import { A as AppShell } from "./AppShell-c090ocC3.mjs";
+import "../_libs/seroval.mjs";
+import "../_libs/tanstack__react-router.mjs";
+import "../_libs/tanstack__router-core.mjs";
+import "../_libs/tanstack__history.mjs";
+import "../_libs/cookie-es.mjs";
+import "../_libs/seroval-plugins.mjs";
+import "node:stream/web";
+import "node:stream";
+import "../_libs/react-dom.mjs";
+import "util";
+import "async_hooks";
+import "stream";
+import "crypto";
+import "../_libs/isbot.mjs";
+import "./router-UGTBz-_d.mjs";
+import "../_libs/tanstack__query-core.mjs";
+import "../_libs/tanstack__react-query.mjs";
+import "./client-CSmeRDtX.mjs";
+import "../_libs/supabase__supabase-js.mjs";
+import "../_libs/supabase__postgrest-js.mjs";
+import "../_libs/supabase__realtime-js.mjs";
+import "../_libs/supabase__phoenix.mjs";
+import "../_libs/supabase__storage-js.mjs";
+import "../_libs/iceberg-js.mjs";
+import "../_libs/supabase__auth-js.mjs";
+import "tslib";
+import "../_libs/supabase__functions-js.mjs";
+import "./server-DKFzjMa8.mjs";
+import "node:async_hooks";
+import "../_libs/h3-v2.mjs";
+import "../_libs/rou3.mjs";
+import "../_libs/srvx.mjs";
+import "../_libs/lucide-react.mjs";
+const SplitNotFoundComponent = () => /* @__PURE__ */ jsxRuntimeExports.jsx(AppShell, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mx-auto max-w-3xl px-6 py-24 text-center", children: [
+  /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "senpai-mega text-5xl senpai-grad-text-fire", children: "404" }),
+  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-4 text-senpai-text-dim", children: "Manga not found." })
+] }) });
+export {
+  SplitNotFoundComponent as notFoundComponent
+};

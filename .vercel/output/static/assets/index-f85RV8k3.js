@@ -1,0 +1,1 @@
+import{j as o}from"./index-DbVdLeTQ.js";import{A as t}from"./AppShell-Bi-2-ba8.js";import"./createLucideIcon-DQCXk9bY.js";import"./settings-Bu0cDMQg.js";const m=()=>o.jsx(t,{children:o.jsx("div",{className:"p-20 text-center",children:"404"})});export{m as notFoundComponent};

@@ -1,0 +1,12 @@
+# YORUKAI.TV
+
+> Cinematic anime, movies, live TV, and manga streaming. Stream beyond on YORUKAI.TV.
+
+## Pages
+
+- [Home](/): Featured and trending anime, movies and series.
+- [Browse](/browse): Browse the full catalog by genre, year and type.
+- [Genres](/genres): Explore titles by genre.
+- [Manga](/manga): Read trending, popular and latest manga.
+- [Live TV](/live-tv): Live channels and EPG.
+- [Search](/search): Search across the catalog.
