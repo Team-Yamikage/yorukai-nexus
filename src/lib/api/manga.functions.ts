@@ -53,17 +53,50 @@ function mapManga(m: any): MangaItem {
   };
 }
 
-async function getJson(path: string): Promise<any> {
-  // MangaDex returns 400 when the User-Agent header is empty (as it is by
-  // default in the Worker runtime), so we always send an explicit one.
-  const res = await fetch(`${API}${path}`, {
-    headers: {
-      accept: "application/json",
-      "User-Agent": "YorukaiTV/1.0 (+https://neon-yokai.lovable.app)",
-    },
-  });
-  if (!res.ok) throw new Error(`MangaDex error ${res.status}`);
-  return res.json();
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Fetch JSON from MangaDex with retry + exponential backoff on rate-limit
+ * (429) and transient 5xx responses. MangaDex aggressively rate-limits, which
+ * is the primary cause of chapters silently failing to load. A short timeout
+ * via AbortController prevents a hung request from blocking SSR.
+ */
+async function getJson(path: string, attempts = 3): Promise<any> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12_000);
+    try {
+      const res = await fetch(`${API}${path}`, {
+        signal: ctrl.signal,
+        headers: {
+          accept: "application/json",
+          // MangaDex returns 400 when the User-Agent header is empty (as it is
+          // by default in the Worker runtime), so we always send an explicit one.
+          "User-Agent": "YorukaiTV/1.0 (+https://neon-yokai.lovable.app)",
+        },
+      });
+      clearTimeout(timer);
+      if (res.status === 429 || res.status >= 500) {
+        const retryAfter = Number(res.headers.get("retry-after"));
+        const wait = Number.isFinite(retryAfter) && retryAfter > 0
+          ? retryAfter * 1000
+          : 500 * 2 ** i;
+        if (i < attempts - 1) {
+          await sleep(Math.min(wait, 5_000));
+          continue;
+        }
+        throw new Error(`MangaDex error ${res.status}`);
+      }
+      if (!res.ok) throw new Error(`MangaDex error ${res.status}`);
+      return res.json();
+    } catch (e) {
+      clearTimeout(timer);
+      lastErr = e;
+      if (i < attempts - 1) await sleep(500 * 2 ** i);
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("MangaDex request failed");
 }
 
 /** Browse / search manga. Sorted by the requested ordering. */
