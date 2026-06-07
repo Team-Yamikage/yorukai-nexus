@@ -145,6 +145,7 @@ export const mangaChaptersFn = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const all: MangaChapter[] = [];
     let offset = 0;
+    let firstPageFailed = false;
     for (let i = 0; i < 10; i++) {
       const params = new URLSearchParams();
       params.set("limit", "100");
@@ -154,7 +155,16 @@ export const mangaChaptersFn = createServerFn({ method: "GET" })
       params.append("contentRating[]", "suggestive");
       params.set("order[chapter]", "asc");
       params.append("includes[]", "scanlation_group");
-      const json = await getJson(`/manga/${data.id}/feed?${params.toString()}`);
+      let json: any;
+      try {
+        json = await getJson(`/manga/${data.id}/feed?${params.toString()}`);
+      } catch (e) {
+        // Return whatever we have already gathered (partial results) so a
+        // mid-pagination rate-limit doesn't wipe the whole chapter list. Only
+        // surface a hard error if the very first page failed.
+        if (i === 0) firstPageFailed = true;
+        break;
+      }
       const batch = (json.data ?? []).map((c: any) => ({
         id: c.id,
         chapter: c.attributes?.chapter ?? null,
@@ -167,7 +177,10 @@ export const mangaChaptersFn = createServerFn({ method: "GET" })
       all.push(...batch);
       offset += 100;
       if (offset >= (json.total ?? 0)) break;
+      // Small delay between sequential requests to avoid tripping rate limits.
+      await sleep(250);
     }
+    if (firstPageFailed) throw new Error("Failed to load chapters");
     // Dedupe by chapter number (keep first/earliest group), keep ascending.
     const seen = new Set<string>();
     const deduped = all.filter((c) => {
