@@ -294,10 +294,10 @@ function Watch() {
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <button onClick={togglePlay} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 hover:bg-white/20">
+                      <button aria-label={playing ? "Pause" : "Play"} onClick={togglePlay} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 hover:bg-white/20">
                         {playing ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
                       </button>
-                      <button onClick={() => { const v = videoRef.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted); }} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 hover:bg-white/20">
+                      <button aria-label={muted ? "Unmute" : "Mute"} onClick={() => { const v = videoRef.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted); }} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 hover:bg-white/20">
                         {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                       </button>
                       <span className="font-[var(--font-mono)] text-xs text-senpai-text-dim">{fmt(progress)} / {fmt(duration)}</span>
