@@ -1,9 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
 import { ChevronLeft, ChevronRight, SkipForward, Settings, Languages, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
-import { episodeQuery, FALLBACK_POSTER, type ServerRow } from "@/lib/api/content";
+import { episodeQuery, episodeServersQuery, FALLBACK_POSTER, type ServerRow } from "@/lib/api/content";
 import {
   playableServers,
   languagesOf,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/api/servers";
 import { probeServers } from "@/lib/api/server-health.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { getDeviceId } from "@/lib/device";
 import { useAuth } from "@/lib/auth";
 import { ShareButton } from "@/components/ShareButton";
 
@@ -46,6 +47,13 @@ function Watch() {
   const ep = data.episode!;
   const content = data.content;
 
+  // Servers are fetched through the guarded server function (ban + rate-limit
+  // checks) using the per-device id.
+  const deviceId = useMemo(() => getDeviceId(), []);
+  const { data: serverData } = useQuery(episodeServersQuery(id, deviceId));
+  const rawServers = useMemo<ServerRow[]>(() => serverData?.servers ?? [], [serverData]);
+  const blocked = serverData?.blocked;
+
   // Server-side reachability results: serverId -> reachable.
   const [health, setHealth] = useState<Record<string, boolean>>({});
 
@@ -53,15 +61,15 @@ function Watch() {
   // known-dead/ad-redirect host (e.g. short.icu), and not flagged unreachable
   // by the health probe.
   const servers = useMemo(
-    () => playableServers(data.servers, health),
-    [data.servers, health],
+    () => playableServers(rawServers, health),
+    [rawServers, health],
   );
 
   // Probe the raw (pre-filter) candidates server-side so we can auto-disable
   // dead sources. The browser can't HEAD cross-origin embeds (CORS), so this
   // runs on the server.
   useEffect(() => {
-    const candidates = data.servers
+    const candidates = rawServers
       .filter((s) => !!s.embed_url && !isDeadHost(s.embed_url))
       .slice(0, 20)
       .map((s) => ({ id: s.id, url: s.embed_url! }));
@@ -75,7 +83,8 @@ function Watch() {
     return () => {
       cancelled = true;
     };
-  }, [data.servers]);
+  }, [rawServers]);
+
 
   // Group available servers by spoken language (audio track).
   const languages = useMemo(() => languagesOf(servers), [servers]);
@@ -193,7 +202,7 @@ function Watch() {
         <div className="flex items-center gap-3">
           <div className="text-right">
             <div className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">{content?.title}</div>
-            <div className="font-[var(--font-display)] text-lg tracking-wide">S{ep.season_number} · E{ep.episode_number}{ep.title ? ` — ${ep.title}` : ""}</div>
+            <h1 className="font-[var(--font-display)] text-lg tracking-wide">{content?.title ? `${content.title} — ` : ""}S{ep.season_number} · E{ep.episode_number}{ep.title ? ` — ${ep.title}` : ""}</h1>
           </div>
           <ShareButton title={content?.title} />
         </div>
@@ -206,9 +215,15 @@ function Watch() {
             {!activeServer ? (
               <div className="grid h-full place-items-center text-center p-8">
                 <div>
-                  <div className="senpai-mega text-3xl senpai-grad-text-fire">NO SERVERS</div>
+                  <div className="senpai-mega text-3xl senpai-grad-text-fire">
+                    {blocked === "banned" ? "ACCESS BLOCKED" : blocked === "rate_limited" ? "SLOW DOWN" : "NO SERVERS"}
+                  </div>
                   <p className="mt-2 text-sm text-senpai-text-dim">
-                    {data.servers.length > 0
+                    {blocked === "banned"
+                      ? "This device has been blocked from streaming."
+                      : blocked === "rate_limited"
+                      ? "Too many requests — please wait a moment and refresh."
+                      : rawServers.length > 0
                       ? "All known sources for this episode are offline or unreachable right now."
                       : "This episode has no playable servers yet."}
                   </p>
@@ -279,15 +294,15 @@ function Watch() {
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <button onClick={togglePlay} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 hover:bg-white/20">
+                      <button aria-label={playing ? "Pause" : "Play"} onClick={togglePlay} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 hover:bg-white/20">
                         {playing ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
                       </button>
-                      <button onClick={() => { const v = videoRef.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted); }} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 hover:bg-white/20">
+                      <button aria-label={muted ? "Unmute" : "Mute"} onClick={() => { const v = videoRef.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted); }} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 hover:bg-white/20">
                         {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                       </button>
                       <span className="font-[var(--font-mono)] text-xs text-senpai-text-dim">{fmt(progress)} / {fmt(duration)}</span>
                     </div>
-                    <button onClick={() => videoRef.current?.requestFullscreen()} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 hover:bg-white/20">
+                    <button aria-label="Fullscreen" onClick={() => videoRef.current?.requestFullscreen()} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 hover:bg-white/20">
                       <Maximize className="h-4 w-4" />
                     </button>
                   </div>

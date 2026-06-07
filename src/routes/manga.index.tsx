@@ -10,8 +10,17 @@ export const Route = createFileRoute("/manga/")({
     meta: [
       { title: "Manga — YORUKAI.TV" },
       { name: "description", content: "Read trending, popular and latest manga in high quality." },
+      { property: "og:title", content: "Manga — YORUKAI.TV" },
+      { property: "og:description", content: "Read trending, popular and latest manga in high quality." },
+      { property: "og:url", content: "https://neon-yokai.lovable.app/manga" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://neon-yokai.lovable.app/manga" },
     ],
   }),
+  loader: ({ context }) => {
+    context.queryClient.prefetchQuery(mangaListQuery("popular"));
+  },
   component: () => (
     <AppShell>
       <Manga />

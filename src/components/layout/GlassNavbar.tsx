@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Search, Bell, User } from "lucide-react";
+import logoIcon from "@/assets/logo-icon.png";
 
 const NAV = [
   { to: "/", label: "Home" },
@@ -15,9 +16,15 @@ export function GlassNavbar() {
     <header className="sticky top-0 z-50 px-4 pt-4">
       <nav className="senpai-glass senpai-glass-strong mx-auto flex max-w-7xl items-center justify-between gap-4 rounded-2xl px-4 py-2.5 md:px-6">
         <Link to="/" className="flex items-center gap-2">
-          <div className="relative h-8 w-8">
-            <div className="absolute inset-0 rounded-md bg-gradient-to-br from-senpai-violet via-senpai-fuchsia to-senpai-teal blur-md opacity-70" />
-            <div className="relative grid h-full w-full place-items-center rounded-md bg-senpai-bg-3 font-[var(--font-mega)] text-xs text-white">夜</div>
+          <div className="relative h-9 w-9">
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-senpai-violet via-senpai-fuchsia to-senpai-teal blur-md opacity-60" />
+            <img
+              src={logoIcon}
+              alt="YORUKAI.TV logo"
+              width={36}
+              height={36}
+              className="relative h-9 w-9 rounded-xl object-cover"
+            />
           </div>
           <div className="hidden sm:block leading-none">
             <div className="font-[var(--font-display)] text-lg tracking-wider">YORUKAI<span className="text-senpai-fuchsia">.</span>TV</div>
