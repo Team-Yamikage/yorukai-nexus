@@ -302,7 +302,7 @@ function Watch() {
                       </button>
                       <span className="font-[var(--font-mono)] text-xs text-senpai-text-dim">{fmt(progress)} / {fmt(duration)}</span>
                     </div>
-                    <button onClick={() => videoRef.current?.requestFullscreen()} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 hover:bg-white/20">
+                    <button aria-label="Fullscreen" onClick={() => videoRef.current?.requestFullscreen()} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 hover:bg-white/20">
                       <Maximize className="h-4 w-4" />
                     </button>
                   </div>
