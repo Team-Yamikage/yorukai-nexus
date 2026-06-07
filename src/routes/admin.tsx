@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
-import { StubPage } from "@/components/StubPage";
+import { AdminBansPanel } from "@/components/admin/AdminBansPanel";
 import { useAuth } from "@/lib/auth";
 import { Loader2, ShieldAlert } from "lucide-react";
 
