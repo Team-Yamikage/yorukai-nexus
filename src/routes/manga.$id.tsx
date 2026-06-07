@@ -1,15 +1,55 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, ArrowLeft } from "lucide-react";
+import { BookOpen, ArrowLeft, RotateCcw } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { ShareButton } from "@/components/ShareButton";
 import { mangaDetailQuery, mangaChaptersQuery } from "@/lib/api/manga.functions";
 
 export const Route = createFileRoute("/manga/$id")({
-  head: () => ({ meta: [{ title: "Manga Detail — YORUKAI.TV" }] }),
+  head: ({ params }) => ({
+    meta: [
+      { title: "Manga Detail — YORUKAI.TV" },
+      { property: "og:type", content: "article" },
+      { property: "og:url", content: `https://neon-yokai.lovable.app/manga/${params.id}` },
+    ],
+    links: [
+      { rel: "canonical", href: `https://neon-yokai.lovable.app/manga/${params.id}` },
+    ],
+  }),
+  loader: ({ context, params }) => {
+    // Prefetch detail (critical) so it is SSR-rendered; chapters stream in via
+    // their own loading/error state in the component.
+    context.queryClient.ensureQueryData(mangaDetailQuery(params.id));
+    context.queryClient.prefetchQuery(mangaChaptersQuery(params.id));
+  },
   component: () => (
     <AppShell>
       <Detail />
+    </AppShell>
+  ),
+  errorComponent: ({ reset }) => {
+    const router = useRouter();
+    return (
+      <AppShell>
+        <div className="mx-auto max-w-3xl px-6 py-24 text-center">
+          <h1 className="senpai-mega text-5xl senpai-grad-text-fire">Oops</h1>
+          <p className="mt-4 text-senpai-text-dim">This manga page didn't load.</p>
+          <button
+            onClick={() => { router.invalidate(); reset(); }}
+            className="senpai-glass mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs uppercase tracking-widest hover:bg-white/10"
+          >
+            <RotateCcw className="h-4 w-4" /> Try again
+          </button>
+        </div>
+      </AppShell>
+    );
+  },
+  notFoundComponent: () => (
+    <AppShell>
+      <div className="mx-auto max-w-3xl px-6 py-24 text-center">
+        <h1 className="senpai-mega text-5xl senpai-grad-text-fire">404</h1>
+        <p className="mt-4 text-senpai-text-dim">Manga not found.</p>
+      </div>
     </AppShell>
   ),
 });
@@ -17,7 +57,13 @@ export const Route = createFileRoute("/manga/$id")({
 function Detail() {
   const { id } = Route.useParams();
   const { data: manga, isLoading } = useQuery(mangaDetailQuery(id));
-  const { data: chapters, isLoading: loadingCh } = useQuery(mangaChaptersQuery(id));
+  const {
+    data: chapters,
+    isLoading: loadingCh,
+    isError: chaptersError,
+    refetch: refetchChapters,
+    isFetching: fetchingCh,
+  } = useQuery(mangaChaptersQuery(id));
 
   if (isLoading) {
     return <div className="mx-auto max-w-6xl px-6 py-24"><div className="h-96 w-full animate-pulse rounded-3xl bg-white/5" /></div>;
@@ -54,6 +100,17 @@ function Detail() {
         <div className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">Chapters · ascending</div>
         {loadingCh ? (
           <div className="mt-4 space-y-2">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-12 w-full animate-pulse rounded-xl bg-white/5" />)}</div>
+        ) : chaptersError ? (
+          <div className="mt-6 grid place-items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.02] py-12 text-center">
+            <p className="text-sm text-senpai-text-dim">Couldn't load chapters — the source may be rate-limited.</p>
+            <button
+              onClick={() => refetchChapters()}
+              disabled={fetchingCh}
+              className="senpai-glass inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs uppercase tracking-widest hover:bg-white/10 disabled:opacity-50"
+            >
+              <RotateCcw className={`h-4 w-4 ${fetchingCh ? "animate-spin" : ""}`} /> Retry
+            </button>
+          </div>
         ) : chapters && chapters.length > 0 ? (
           <div className="mt-4 grid gap-2">
             {chapters.map((c) => (
