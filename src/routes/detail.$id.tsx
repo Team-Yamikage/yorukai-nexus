@@ -7,14 +7,37 @@ import { AppShell } from "@/components/layout/AppShell";
 import { detailQuery, FALLBACK_BANNER, FALLBACK_POSTER } from "@/lib/api/content";
 
 export const Route = createFileRoute("/detail/$id")({
-  head: ({ loaderData }) => {
-    const c = (loaderData as { content?: { title: string; description: string | null; banner_url: string | null } } | undefined)?.content;
+  head: ({ loaderData, params }) => {
+    const c = (loaderData as { content?: { title: string; description: string | null; banner_url: string | null; type?: string; release_year?: number | null; rating?: number | null } } | undefined)?.content;
+    const url = `https://neon-yokai.lovable.app/detail/${params.id}`;
+    const title = c ? `${c.title} — YORUKAI.TV` : "Detail — YORUKAI.TV";
+    const desc = c?.description?.slice(0, 160) ?? "Series detail on YORUKAI.TV";
     return {
       meta: [
-        { title: c ? `${c.title} — YORUKAI.TV` : "Detail — YORUKAI.TV" },
-        { name: "description", content: c?.description?.slice(0, 160) ?? "Series detail on YORUKAI.TV" },
-        ...(c?.banner_url ? [{ property: "og:image", content: c.banner_url }] : []),
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "video.other" },
+        { property: "og:url", content: url },
+        ...(c?.banner_url ? [{ property: "og:image", content: c.banner_url }, { name: "twitter:image", content: c.banner_url }] : []),
       ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: c
+        ? [{
+            type: "application/ld+json",
+            children: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": c.type === "movie" ? "Movie" : "TVSeries",
+              name: c.title,
+              description: desc,
+              image: c.banner_url ?? undefined,
+              datePublished: c.release_year ? String(c.release_year) : undefined,
+              ...(c.rating ? { aggregateRating: { "@type": "AggregateRating", ratingValue: c.rating, bestRating: 10, ratingCount: 1 } } : {}),
+              url,
+            }),
+          }]
+        : [],
     };
   },
   loader: async ({ context, params }) => {
