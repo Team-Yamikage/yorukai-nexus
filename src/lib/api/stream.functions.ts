@@ -75,7 +75,7 @@ export const getEpisodeServersGuarded = createServerFn({ method: "POST" })
     const deviceHash = hashWithSecret(data.deviceId);
 
     // Ban check (device only; no IP bans).
-    const { data: banned } = await supabaseAdmin.rpc("has_active_ban", {
+    const { data: banned } = await (supabaseAdmin.rpc as any)("has_active_ban", {
       _device_hash: deviceHash,
       _user_id: null,
     });
