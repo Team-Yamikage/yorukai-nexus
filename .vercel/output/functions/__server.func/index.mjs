@@ -1,8 +1,12 @@
 globalThis.__nitro_main__ = import.meta.url;
-import { H as HTTPError, d as defineLazyEventHandler, a as H3Core, t as toRequest } from "./_libs/h3.mjs";
+import { H as HTTPError, d as defineHandler, h as handleCacheHeaders, t as toResponse, a as defineLazyEventHandler, b as H3Core, c as toRequest } from "./_libs/h3.mjs";
 import { N as NodeResponse } from "./_libs/srvx.mjs";
+import { d as defineCachedHandler$1, s as setStorage } from "./_libs/ocache.mjs";
+import { c as createStorage, p as prefixStorage } from "./_libs/unstorage.mjs";
 import "./_libs/rou3.mjs";
 import "node:stream";
+import "./_libs/ohash.mjs";
+import "node:crypto";
 function lazyService(loader) {
   let promise, mod;
   return {
@@ -71,13 +75,90 @@ async function errorHandler(error, event) {
     }
   }
 }
+const _assets = {};
+const normalizeKey = function normalizeKey2(key) {
+  if (!key) return "";
+  return key.split("?")[0]?.replace(/[/\\]/g, ":").replace(/:+/g, ":").replace(/^:|:$/g, "") || "";
+};
+const assets = {
+  getKeys() {
+    return Promise.resolve(Object.keys(_assets));
+  },
+  hasItem(id) {
+    id = normalizeKey(id);
+    return Promise.resolve(id in _assets);
+  },
+  getItem(id) {
+    id = normalizeKey(id);
+    return Promise.resolve(_assets[id] ? _assets[id].import() : null);
+  },
+  getMeta(id) {
+    id = normalizeKey(id);
+    return Promise.resolve(_assets[id] ? _assets[id].meta : {});
+  }
+};
+function initStorage() {
+  const storage = createStorage({});
+  storage.mount("/assets", assets);
+  return storage;
+}
+function useStorage(base = "") {
+  const storage = useStorage._storage ??= initStorage();
+  return base ? prefixStorage(storage, base) : storage;
+}
+let _storageReady = false;
+function ensureStorage() {
+  if (_storageReady) {
+    return;
+  }
+  _storageReady = true;
+  const storage = useStorage();
+  setStorage({
+    get: (key) => storage.getItem(key),
+    set: (key, value, opts) => storage.setItem(key, value, opts?.ttl ? { ttl: opts.ttl } : void 0)
+  });
+}
+function defaultOnError(error) {
+  console.error("[cache]", error);
+  useNitroApp().captureError?.(error, { tags: ["cache"] });
+}
+function defineCachedHandler(handler, opts = {}) {
+  ensureStorage();
+  const ocacheHandler = defineCachedHandler$1(handler, {
+    group: "nitro/handlers",
+    onError: defaultOnError,
+    toResponse: (value, event) => toResponse(value, event),
+    createResponse: (body, init) => new NodeResponse(body, init),
+    handleCacheHeaders: (event, conditions) => handleCacheHeaders(event, conditions),
+    ...opts
+  });
+  return defineHandler((event) => ocacheHandler(event));
+}
 const headers = ((m) => function headersRouteRule(event) {
   for (const [key, value] of Object.entries(m.options || {})) {
     event.res.headers.set(key, value);
   }
 });
+const cache = ((m) => function cacheRouteRule(event, next) {
+  if (!event.context.matchedRoute) {
+    return next();
+  }
+  const cachedHandlers = globalThis.__nitroCachedHandlers ??= /* @__PURE__ */ new Map();
+  const { handler, route } = event.context.matchedRoute;
+  const key = `${m.route}:${route}`;
+  let cachedHandler = cachedHandlers.get(key);
+  if (!cachedHandler) {
+    cachedHandler = defineCachedHandler(handler, {
+      group: "nitro/route-rules",
+      name: key,
+      ...m.options
+    });
+    cachedHandlers.set(key, cachedHandler);
+  }
+  return cachedHandler(event);
+});
 const findRouteRules = /* @__PURE__ */ (() => {
-  const $0 = [{ name: "headers", route: "/assets/**", handler: headers, options: { "cache-control": "public, max-age=31536000, immutable" } }];
+  const $0 = [{ name: "headers", route: "/assets/**", handler: headers, options: { "cache-control": "public, max-age=31536000, immutable" } }], $1 = [{ name: "cache", route: "/**", handler: cache, options: { "maxAge": 0 } }];
   return (m, p) => {
     let r = [];
     if (p.charCodeAt(p.length - 1) === 47) p = p.slice(0, -1) || "/";
@@ -87,6 +168,7 @@ const findRouteRules = /* @__PURE__ */ (() => {
         r.unshift({ data: $0, params: { "_": s.slice(2).join("/") } });
       }
     }
+    r.unshift({ data: $1, params: { "_": s.slice(1).join("/") } });
     return r;
   };
 })();

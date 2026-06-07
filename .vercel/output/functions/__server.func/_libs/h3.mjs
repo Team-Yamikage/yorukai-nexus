@@ -398,9 +398,34 @@ var H3Core = class {
     return routeMiddleware ? [...globalMiddleware, ...routeMiddleware] : globalMiddleware;
   }
 };
+function handleCacheHeaders(event, opts) {
+  const cacheControls = ["public", ...opts.cacheControls || []];
+  let cacheMatched = false;
+  if (opts.maxAge !== void 0) cacheControls.push(`max-age=${+opts.maxAge}`, `s-maxage=${+opts.maxAge}`);
+  if (opts.modifiedTime) {
+    const modifiedTime = new Date(opts.modifiedTime);
+    modifiedTime.setMilliseconds(0);
+    const ifModifiedSince = event.req.headers.get("if-modified-since");
+    event.res.headers.set("last-modified", modifiedTime.toUTCString());
+    if (ifModifiedSince && new Date(ifModifiedSince) >= modifiedTime) cacheMatched = true;
+  }
+  if (opts.etag) {
+    event.res.headers.set("etag", opts.etag);
+    if (event.req.headers.get("if-none-match") === opts.etag) cacheMatched = true;
+  }
+  event.res.headers.set("cache-control", cacheControls.join(", "));
+  if (cacheMatched) {
+    event.res.status = 304;
+    return true;
+  }
+  return false;
+}
 export {
   HTTPError as H,
-  H3Core as a,
-  defineLazyEventHandler as d,
-  toRequest as t
+  defineLazyEventHandler as a,
+  H3Core as b,
+  toRequest as c,
+  defineHandler as d,
+  handleCacheHeaders as h,
+  toResponse as t
 };
