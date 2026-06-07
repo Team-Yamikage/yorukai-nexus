@@ -149,8 +149,8 @@ export function episodeQuery(episodeId: string) {
         .select("*")
         .eq("id", episodeId)
         .maybeSingle();
-      if (!ep) return { episode: null, content: null, siblings: [] as EpisodeRow[], servers: [] as ServerRow[] };
-      const [content, siblings, servers] = await Promise.all([
+      if (!ep) return { episode: null, content: null, siblings: [] as EpisodeRow[] };
+      const [content, siblings] = await Promise.all([
         supabase.from("content").select("*").eq("id", ep.content_id).maybeSingle(),
         supabase
           .from("episodes")
@@ -158,16 +158,34 @@ export function episodeQuery(episodeId: string) {
           .eq("content_id", ep.content_id)
           .order("season_number")
           .order("episode_number"),
-        supabase.rpc("get_episode_servers", { _episode_id: episodeId }),
       ]);
       return {
         episode: ep as EpisodeRow,
         content: content.data as ContentRow | null,
         siblings: (siblings.data ?? []) as EpisodeRow[],
-        servers: (servers.data ?? []) as ServerRow[],
       };
     },
     staleTime: 15_000,
+  });
+}
+
+/**
+ * Servers are fetched through the guarded server function (ban + rate-limit
+ * checks) rather than the public RPC, using the per-device id. Kept separate
+ * from episodeQuery so it runs client-side where the device id is available.
+ */
+export function episodeServersQuery(episodeId: string, deviceId: string) {
+  return queryOptions({
+    queryKey: ["episode-servers", episodeId],
+    queryFn: async () => {
+      const { getEpisodeServersGuarded } = await import("./stream.functions");
+      const res = await getEpisodeServersGuarded({
+        data: { episodeId, deviceId },
+      });
+      return res;
+    },
+    staleTime: 15_000,
+    retry: 1,
   });
 }
 
@@ -179,3 +197,4 @@ export type ServerRow = {
   language: string;
   embed_url: string | null;
 };
+
