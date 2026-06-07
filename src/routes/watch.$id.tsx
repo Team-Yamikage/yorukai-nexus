@@ -202,7 +202,7 @@ function Watch() {
         <div className="flex items-center gap-3">
           <div className="text-right">
             <div className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">{content?.title}</div>
-            <div className="font-[var(--font-display)] text-lg tracking-wide">S{ep.season_number} · E{ep.episode_number}{ep.title ? ` — ${ep.title}` : ""}</div>
+            <h1 className="font-[var(--font-display)] text-lg tracking-wide">{content?.title ? `${content.title} — ` : ""}S{ep.season_number} · E{ep.episode_number}{ep.title ? ` — ${ep.title}` : ""}</h1>
           </div>
           <ShareButton title={content?.title} />
         </div>
