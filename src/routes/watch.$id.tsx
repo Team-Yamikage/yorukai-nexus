@@ -215,9 +215,15 @@ function Watch() {
             {!activeServer ? (
               <div className="grid h-full place-items-center text-center p-8">
                 <div>
-                  <div className="senpai-mega text-3xl senpai-grad-text-fire">NO SERVERS</div>
+                  <div className="senpai-mega text-3xl senpai-grad-text-fire">
+                    {blocked === "banned" ? "ACCESS BLOCKED" : blocked === "rate_limited" ? "SLOW DOWN" : "NO SERVERS"}
+                  </div>
                   <p className="mt-2 text-sm text-senpai-text-dim">
-                    {data.servers.length > 0
+                    {blocked === "banned"
+                      ? "This device has been blocked from streaming."
+                      : blocked === "rate_limited"
+                      ? "Too many requests — please wait a moment and refresh."
+                      : rawServers.length > 0
                       ? "All known sources for this episode are offline or unreachable right now."
                       : "This episode has no playable servers yet."}
                   </p>
