@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Search, Bell, User } from "lucide-react";
+import logoIcon from "@/assets/logo-icon.png";
 
 const NAV = [
   { to: "/", label: "Home" },
