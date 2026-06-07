@@ -47,6 +47,13 @@ function Watch() {
   const ep = data.episode!;
   const content = data.content;
 
+  // Servers are fetched through the guarded server function (ban + rate-limit
+  // checks) using the per-device id.
+  const deviceId = useMemo(() => getDeviceId(), []);
+  const { data: serverData } = useQuery(episodeServersQuery(id, deviceId));
+  const rawServers = useMemo<ServerRow[]>(() => serverData?.servers ?? [], [serverData]);
+  const blocked = serverData?.blocked;
+
   // Server-side reachability results: serverId -> reachable.
   const [health, setHealth] = useState<Record<string, boolean>>({});
 
@@ -54,15 +61,15 @@ function Watch() {
   // known-dead/ad-redirect host (e.g. short.icu), and not flagged unreachable
   // by the health probe.
   const servers = useMemo(
-    () => playableServers(data.servers, health),
-    [data.servers, health],
+    () => playableServers(rawServers, health),
+    [rawServers, health],
   );
 
   // Probe the raw (pre-filter) candidates server-side so we can auto-disable
   // dead sources. The browser can't HEAD cross-origin embeds (CORS), so this
   // runs on the server.
   useEffect(() => {
-    const candidates = data.servers
+    const candidates = rawServers
       .filter((s) => !!s.embed_url && !isDeadHost(s.embed_url))
       .slice(0, 20)
       .map((s) => ({ id: s.id, url: s.embed_url! }));
@@ -76,7 +83,8 @@ function Watch() {
     return () => {
       cancelled = true;
     };
-  }, [data.servers]);
+  }, [rawServers]);
+
 
   // Group available servers by spoken language (audio track).
   const languages = useMemo(() => languagesOf(servers), [servers]);
