@@ -14,7 +14,7 @@ export const Route = createFileRoute("/genres")({
       { property: "og:title", content: "Genres — YORUKAI.TV" },
       { property: "og:description", content: "Browse anime by genre on YORUKAI.TV." },
     ],
-    links: [{ rel: "canonical", href: "https://neon-yokai.lovable.app/genres" }],
+    links: [{ rel: "canonical", href: "https://anisti.vercel.app/genres" }],
   }),
   component: () => (
     <AppShell>

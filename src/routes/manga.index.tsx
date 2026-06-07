@@ -12,10 +12,10 @@ export const Route = createFileRoute("/manga/")({
       { name: "description", content: "Read trending, popular and latest manga in high quality." },
       { property: "og:title", content: "Manga — YORUKAI.TV" },
       { property: "og:description", content: "Read trending, popular and latest manga in high quality." },
-      { property: "og:url", content: "https://neon-yokai.lovable.app/manga" },
+      { property: "og:url", content: "https://anisti.vercel.app/manga" },
     ],
     links: [
-      { rel: "canonical", href: "https://neon-yokai.lovable.app/manga" },
+      { rel: "canonical", href: "https://anisti.vercel.app/manga" },
     ],
   }),
   loader: ({ context }) => {

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 
-const BASE_URL = "https://neon-yokai.lovable.app";
+const BASE_URL = "https://anisti.vercel.app";
 
 const paths = ["/", "/browse", "/genres", "/manga", "/live-tv", "/search", "/auth"];
 

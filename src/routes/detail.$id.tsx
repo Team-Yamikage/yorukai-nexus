@@ -9,7 +9,7 @@ import { detailQuery, FALLBACK_BANNER, FALLBACK_POSTER } from "@/lib/api/content
 export const Route = createFileRoute("/detail/$id")({
   head: ({ loaderData, params }) => {
     const c = (loaderData as { content?: { title: string; description: string | null; banner_url: string | null; type?: string; release_year?: number | null; rating?: number | null } } | undefined)?.content;
-    const url = `https://neon-yokai.lovable.app/detail/${params.id}`;
+    const url = `https://anisti.vercel.app/detail/${params.id}`;
     const title = c ? `${c.title} — YORUKAI.TV` : "Detail — YORUKAI.TV";
     const desc = c?.description?.slice(0, 160) ?? "Series detail on YORUKAI.TV";
     return {

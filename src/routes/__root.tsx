@@ -82,8 +82,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "YORUKAI.TV — Stream Beyond" },
       { name: "twitter:description", content: "Cinematic anime, movies, live TV, and manga. Stream beyond on YORUKAI.TV." },
-      { property: "og:image", content: "https://neon-yokai.lovable.app/og-image.png" },
-      { name: "twitter:image", content: "https://neon-yokai.lovable.app/og-image.png" },
+      { property: "og:image", content: "https://anisti.vercel.app/og-image.png" },
+      { name: "twitter:image", content: "https://anisti.vercel.app/og-image.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

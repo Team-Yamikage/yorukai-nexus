@@ -10,10 +10,10 @@ export const Route = createFileRoute("/manga/$id")({
     meta: [
       { title: "Manga Detail — YORUKAI.TV" },
       { property: "og:type", content: "article" },
-      { property: "og:url", content: `https://neon-yokai.lovable.app/manga/${params.id}` },
+      { property: "og:url", content: `https://anisti.vercel.app/manga/${params.id}` },
     ],
     links: [
-      { rel: "canonical", href: `https://neon-yokai.lovable.app/manga/${params.id}` },
+      { rel: "canonical", href: `https://anisti.vercel.app/manga/${params.id}` },
     ],
   }),
   loader: ({ context, params }) => {

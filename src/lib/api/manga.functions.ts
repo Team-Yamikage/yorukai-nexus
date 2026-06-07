@@ -73,7 +73,7 @@ async function getJson(path: string, attempts = 3): Promise<any> {
           accept: "application/json",
           // MangaDex returns 400 when the User-Agent header is empty (as it is
           // by default in the Worker runtime), so we always send an explicit one.
-          "User-Agent": "YorukaiTV/1.0 (+https://neon-yokai.lovable.app)",
+          "User-Agent": "YorukaiTV/1.0 (+https://anisti.vercel.app)",
         },
       });
       clearTimeout(timer);
