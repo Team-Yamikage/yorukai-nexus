@@ -7,6 +7,11 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  nitro: {
+    // Lovable publish still forces Cloudflare internally. Outside Lovable,
+    // NITRO_PRESET lets Vercel/Render select their own runtime cleanly.
+    preset: process.env.NITRO_PRESET,
+  },
   tanstackStart: {
     server: { entry: "server" },
   },

@@ -6,13 +6,17 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "build:vercel": "NITRO_PRESET=vercel vite build",
+    "build:render": "NITRO_PRESET=node_server vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
+    "start": "node .output/server/index.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

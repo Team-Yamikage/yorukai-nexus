@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: yorukai-tv
+    runtime: node
+    buildCommand: bun install && bun run build:render
+    startCommand: bun run start
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NITRO_PRESET
+        value: node_server
