@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/lib/device";
 import { useAuth } from "@/lib/auth";
 import { ShareButton } from "@/components/ShareButton";
+import { recordAppMetric } from "@/lib/api/metrics.functions";
 
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — YORUKAI.TV" }] }),
@@ -117,6 +118,13 @@ function Watch() {
   // Cycle to the next available server across languages.
   const tryAnother = () => {
     setPlaybackError(null);
+    recordAppMetric({
+      data: {
+        source: "stream",
+        name: "server_cycle_requested",
+        labels: { episodeId: id, serverCount: servers.length, activeServer: activeServer?.id ?? null },
+      },
+    }).catch(() => {});
     const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
     setActiveLang(lang);
     setServerIdx(index);
@@ -176,6 +184,14 @@ function Watch() {
       v.src = url;
     }
   }, [activeServer]);
+
+  useEffect(() => {
+    if (serverData && rawServers.length === 0) {
+      recordAppMetric({
+        data: { source: "stream", name: "client_no_servers", labels: { episodeId: id, blocked: blocked ?? null } },
+      }).catch(() => {});
+    }
+  }, [serverData, rawServers.length, blocked, id]);
 
   // Show intro skip between 5-90s
   useEffect(() => {

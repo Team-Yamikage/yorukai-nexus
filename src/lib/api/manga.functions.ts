@@ -55,6 +55,29 @@ function mapManga(m: any): MangaItem {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function mangaLog(event: string, fields: Record<string, unknown>) {
+  try {
+    console.info(`[mangadex] ${event} ${JSON.stringify(fields)}`);
+  } catch {
+    /* logging must never throw */
+  }
+}
+
+async function recordMangaMetric(name: string, labels: Record<string, unknown>) {
+  mangaLog(name, labels);
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("app_metrics" as never).insert({
+      event_source: "mangadex",
+      event_name: name,
+      metric_value: 1,
+      labels,
+    } as never);
+  } catch {
+    /* Supabase admin env may be absent in self-hosted previews. Logs remain. */
+  }
+}
+
 /**
  * Fetch JSON from MangaDex with retry + exponential backoff on rate-limit
  * (429) and transient 5xx responses. MangaDex aggressively rate-limits, which
@@ -83,9 +106,20 @@ async function getJson(path: string, attempts = 3): Promise<any> {
           ? retryAfter * 1000
           : 500 * 2 ** i;
         if (i < attempts - 1) {
+          await recordMangaMetric(res.status === 429 ? "rate_limited_retry" : "upstream_retry", {
+            path,
+            status: res.status,
+            attempt: i + 1,
+            wait,
+          });
           await sleep(Math.min(wait, 5_000));
           continue;
         }
+        await recordMangaMetric(res.status === 429 ? "rate_limited_exhausted" : "upstream_exhausted", {
+          path,
+          status: res.status,
+          attempts,
+        });
         throw new Error(`MangaDex error ${res.status}`);
       }
       if (!res.ok) throw new Error(`MangaDex error ${res.status}`);
@@ -93,7 +127,14 @@ async function getJson(path: string, attempts = 3): Promise<any> {
     } catch (e) {
       clearTimeout(timer);
       lastErr = e;
-      if (i < attempts - 1) await sleep(500 * 2 ** i);
+      if (i < attempts - 1) {
+        await recordMangaMetric("request_exception_retry", {
+          path,
+          attempt: i + 1,
+          error: e instanceof Error ? e.name : String(e),
+        });
+        await sleep(500 * 2 ** i);
+      }
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error("MangaDex request failed");

@@ -54,6 +54,14 @@ async function probeOne(url: string, timeoutMs = 6000): Promise<boolean> {
   }
 }
 
+function logProbeMetric(event: string, fields: Record<string, unknown>) {
+  try {
+    console.info(`[stream-probe] ${event} ${JSON.stringify(fields)}`);
+  } catch {
+    /* logging must never throw */
+  }
+}
+
 /**
  * Server-side reachability probe. The browser cannot HEAD cross-origin embed
  * hosts (CORS), so this runs on the server and returns a map of
@@ -65,5 +73,20 @@ export const probeServers = createServerFn({ method: "POST" })
     const entries = await Promise.all(
       data.servers.map(async (s) => [s.id, await probeOne(s.url)] as const),
     );
+    const failed = entries.filter(([, ok]) => !ok).length;
+    if (failed) {
+      logProbeMetric("unreachable_sources", { failed, total: entries.length });
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await supabaseAdmin.from("app_metrics" as never).insert({
+          event_source: "stream",
+          event_name: "probe_unreachable_sources",
+          metric_value: failed,
+          labels: { total: entries.length },
+        } as never);
+      } catch {
+        /* metrics persistence must never block playback */
+      }
+    }
     return { health: Object.fromEntries(entries) as Record<string, boolean> };
   });
