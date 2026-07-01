@@ -700,6 +700,73 @@ export type Database = {
         }
         Relationships: []
       }
+      watch_party_events: {
+        Row: {
+          created_at: string
+          event_payload: Json
+          event_type: string
+          id: string
+          party_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_payload?: Json
+          event_type: string
+          id?: string
+          party_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_payload?: Json
+          event_type?: string
+          id?: string
+          party_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_party_events_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "watch_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watch_party_members: {
+        Row: {
+          id: string
+          joined_at: string
+          party_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          party_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          party_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_party_members_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "watch_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       watch_party_messages: {
         Row: {
           body: string
@@ -808,6 +875,10 @@ export type Database = {
           _target: string
         }
         Returns: undefined
+      }
+      can_access_watch_party: {
+        Args: { _party_id: string; _user_id: string }
+        Returns: boolean
       }
       get_episode_servers: {
         Args: { _episode_id: string }
