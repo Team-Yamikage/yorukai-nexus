@@ -53,6 +53,20 @@ async function mockPlayerBase(page: Page) {
   );
 }
 
+async function fulfillServerFn(route: Parameters<Parameters<Page["route"]>[1]>[0], result: unknown) {
+  const { toCrossJSONAsync } = await import("seroval");
+  const body = await toCrossJSONAsync(
+    { result, error: null, context: {} },
+    { refs: new Map(), plugins: [] },
+  );
+  await route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    headers: { "x-tss-serialized": "true" },
+    body: JSON.stringify(body),
+  });
+}
+
 test("manga chapters visual state", async ({ page }) => {
   await mockMangaDex(page);
   await page.goto(`/manga/${MANGA_ID}`);
@@ -66,11 +80,7 @@ test("manga chapters visual state", async ({ page }) => {
 test("player iframe visual state", async ({ page }) => {
   await mockPlayerBase(page);
   await page.route(/getEpisodeServersGuarded/, (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ servers: [{ id: "s1", episode_id: EPISODE_ID, server_name: "Vidstream", quality: "1080p", language: "English", embed_url: "https://example.com/embed/s1" }] }),
-    }),
+    fulfillServerFn(route, { servers: [{ id: "s1", episode_id: EPISODE_ID, server_name: "Vidstream", quality: "1080p", language: "English", embed_url: "https://example.com/embed/s1" }] }),
   );
   await page.goto(`/watch/${EPISODE_ID}`);
   await expect(page.locator("iframe")).toHaveAttribute("src", "https://example.com/embed/s1", { timeout: 15_000 });
@@ -83,7 +93,7 @@ test("player iframe visual state", async ({ page }) => {
 test("player empty visual state", async ({ page }) => {
   await mockPlayerBase(page);
   await page.route(/getEpisodeServersGuarded/, (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ servers: [] }) }),
+    fulfillServerFn(route, { servers: [] }),
   );
   await page.goto(`/watch/${EPISODE_ID}`);
   await expect(page.getByText("NO SERVERS")).toBeVisible({ timeout: 15_000 });
