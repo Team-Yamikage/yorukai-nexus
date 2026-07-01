@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://anisti.vercel.app/sitemap.xml

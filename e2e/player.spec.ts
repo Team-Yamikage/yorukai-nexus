@@ -41,10 +41,16 @@ async function mockProbe(page: Page) {
 
 async function mockServers(page: Page, servers: any[], blocked?: string) {
   await page.route(/getEpisodeServersGuarded/, async (route) => {
+    const { toCrossJSONAsync } = await import("seroval");
+    const body = await toCrossJSONAsync(
+      { result: { servers, blocked }, error: null, context: {} },
+      { refs: new Map(), plugins: [] },
+    );
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ servers, blocked }),
+      headers: { "x-tss-serialized": "true" },
+      body: JSON.stringify(body),
     });
   });
 }

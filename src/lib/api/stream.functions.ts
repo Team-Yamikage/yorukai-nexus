@@ -42,6 +42,17 @@ function getSecret(): string | null {
   return process.env.STREAM_SIGNING_SECRET ?? null;
 }
 
+function getSupabaseRuntimeEnv() {
+  return {
+    url: process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? null,
+    key:
+      process.env.SUPABASE_PUBLISHABLE_KEY ??
+      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+      process.env.SUPABASE_ANON_KEY ??
+      null,
+  };
+}
+
 function hashWithSecret(value: string, secret: string): string {
   return createHmac("sha256", secret).update(value).digest("hex");
 }
@@ -83,6 +94,51 @@ async function isRateLimited(
   }
 }
 
+async function recordStreamMetric(
+  admin: any,
+  name: string,
+  labels: Record<string, unknown>,
+) {
+  logEvent(name, labels);
+  try {
+    await admin.from("app_metrics").insert({
+      event_source: "stream",
+      event_name: name,
+      metric_value: 1,
+      labels,
+    });
+  } catch (e) {
+    logEvent("metric_persist_error", { name, error: String(e) });
+  }
+}
+
+async function fetchServersWithPublicRpc(episodeId: string): Promise<ServerRow[]> {
+  const env = getSupabaseRuntimeEnv();
+  if (!env.url || !env.key) {
+    logEvent("public_rpc_env_missing", { episodeId });
+    return [];
+  }
+  try {
+    const res = await fetch(`${env.url}/rest/v1/rpc/get_episode_servers`, {
+      method: "POST",
+      headers: {
+        apikey: env.key,
+        authorization: `Bearer ${env.key}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ _episode_id: episodeId }),
+    });
+    if (!res.ok) {
+      logEvent("public_rpc_error", { episodeId, status: res.status });
+      return [];
+    }
+    return (await res.json()) as ServerRow[];
+  } catch (e) {
+    logEvent("public_rpc_exception", { episodeId, error: String(e) });
+    return [];
+  }
+}
+
 /**
  * Guarded replacement for the get_episode_servers RPC. Returns the playable
  * server rows for an episode after best-effort ban + rate-limit checks.
@@ -90,13 +146,18 @@ async function isRateLimited(
 export const getEpisodeServersGuarded = createServerFn({ method: "POST" })
   .inputValidator((d) => DeviceInput.parse(d))
   .handler(async ({ data }): Promise<{ servers: ServerRow[]; blocked?: string }> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let supabaseAdmin: any = null;
+    try {
+      supabaseAdmin = (await import("@/integrations/supabase/client.server")).supabaseAdmin;
+    } catch (e) {
+      logEvent("admin_import_error", { episodeId: data.episodeId, error: String(e) });
+    }
     const secret = getSecret();
 
     // Guard layer (ban + rate limit). Only active when a signing secret is
     // configured; otherwise we skip straight to serving the episode so a
     // misconfigured secret never breaks the whole site.
-    if (secret) {
+    if (secret && supabaseAdmin) {
       try {
         const deviceHash = hashWithSecret(data.deviceId, secret);
 
@@ -107,7 +168,7 @@ export const getEpisodeServersGuarded = createServerFn({ method: "POST" })
         if (banErr) {
           logEvent("ban_check_error", { error: banErr.message });
         } else if (banned === true) {
-          logEvent("blocked_banned", { episodeId: data.episodeId });
+          await recordStreamMetric(supabaseAdmin, "blocked_banned", { episodeId: data.episodeId });
           return { servers: [], blocked: "banned" };
         }
 
@@ -125,33 +186,50 @@ export const getEpisodeServersGuarded = createServerFn({ method: "POST" })
           60, // per 60s window
         );
         if (limited) {
-          logEvent("blocked_rate_limited", { episodeId: data.episodeId });
+          await recordStreamMetric(supabaseAdmin, "blocked_rate_limited", { episodeId: data.episodeId });
           return { servers: [], blocked: "rate_limited" };
         }
       } catch (e) {
         // Guard layer must never block playback — log and continue.
         logEvent("guard_error", { episodeId: data.episodeId, error: String(e) });
       }
-    } else {
+    } else if (!secret) {
       logEvent("missing_signing_secret", { episodeId: data.episodeId });
     }
 
     // Fetch servers. This is the only step allowed to surface an error, but we
     // still catch it so the client gets an empty list (graceful "no servers")
     // rather than a 500 that renders the branded crash page.
-    try {
-      const { data: servers, error } = await supabaseAdmin.rpc("get_episode_servers", {
-        _episode_id: data.episodeId,
-      });
-      if (error) {
-        logEvent("get_servers_error", { episodeId: data.episodeId, error: error.message });
-        return { servers: [], blocked: "error" };
+    if (supabaseAdmin) {
+      try {
+        const { data: servers, error } = await supabaseAdmin.rpc("get_episode_servers", {
+          _episode_id: data.episodeId,
+        });
+        if (error) {
+          await recordStreamMetric(supabaseAdmin, "get_servers_error", {
+            episodeId: data.episodeId,
+            error: error.message,
+          });
+        } else {
+          const rows = (servers ?? []) as ServerRow[];
+          await recordStreamMetric(supabaseAdmin, rows.length ? "servers_ok" : "servers_empty", {
+            episodeId: data.episodeId,
+            count: rows.length,
+          });
+          return { servers: rows };
+        }
+      } catch (e) {
+        logEvent("get_servers_exception", { episodeId: data.episodeId, error: String(e) });
       }
-      const rows = (servers ?? []) as ServerRow[];
-      logEvent("servers_ok", { episodeId: data.episodeId, count: rows.length });
-      return { servers: rows };
-    } catch (e) {
-      logEvent("get_servers_exception", { episodeId: data.episodeId, error: String(e) });
-      return { servers: [], blocked: "error" };
     }
+
+    // Deploy-safe fallback for Vercel/Render previews where service-role env is
+    // often missing at first. This keeps playback alive while the platform env
+    // is being completed; the guarded server function remains the only app path.
+    const fallback = await fetchServersWithPublicRpc(data.episodeId);
+    logEvent(fallback.length ? "servers_ok_public_fallback" : "servers_empty_public_fallback", {
+      episodeId: data.episodeId,
+      count: fallback.length,
+    });
+    return { servers: fallback, blocked: fallback.length ? undefined : "error" };
   });
