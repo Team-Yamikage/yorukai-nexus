@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_metrics: {
+        Row: {
+          created_at: string
+          event_name: string
+          event_source: string
+          id: string
+          labels: Json
+          metric_value: number
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          event_source: string
+          id?: string
+          labels?: Json
+          metric_value?: number
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          event_source?: string
+          id?: string
+          labels?: Json
+          metric_value?: number
+        }
+        Relationships: []
+      }
       banned_devices: {
         Row: {
           created_at: string
