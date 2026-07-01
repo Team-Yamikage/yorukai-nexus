@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type Route as PlaywrightRoute } from "@playwright/test";
 
 const MANGA_ID = "00000000-0000-0000-0000-0000000000aa";
 const EPISODE_ID = "00000000-0000-0000-0000-0000000000ee";
@@ -53,7 +53,7 @@ async function mockPlayerBase(page: Page) {
   );
 }
 
-async function fulfillServerFn(route: Parameters<Parameters<Page["route"]>[1]>[0], result: unknown) {
+async function fulfillServerFn(route: PlaywrightRoute, result: unknown) {
   const { toCrossJSONAsync } = await import("seroval");
   const body = await toCrossJSONAsync(
     { result, error: null, context: {} },
