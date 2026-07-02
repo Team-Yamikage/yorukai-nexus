@@ -18,7 +18,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <GlassNavbar />
       <FloatingSidebar />
       <main className="relative lg:pl-20">{children}</main>
-      <footer className="relative mt-32 border-t border-senpai-border px-6 py-10 text-center text-xs uppercase tracking-[0.3em] text-senpai-text-muted">
+      <div className="relative lg:pl-20 mt-16 flex justify-center px-4">
+        <AdBanner adKey="fdec4a5fa967fe156dfa4d2965fe6e0c" width={728} height={90} />
+      </div>
+      <footer className="relative mt-16 border-t border-senpai-border px-6 py-10 text-center text-xs uppercase tracking-[0.3em] text-senpai-text-muted">
         <span className="font-[var(--font-jp)]">夜界</span> · YORUKAI.TV · stream beyond
       </footer>
     </div>
