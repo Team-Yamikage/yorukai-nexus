@@ -98,6 +98,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Bebas+Neue&family=Bowlby+One&family=Caveat:wght@400;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@400;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap",
       },
     ],
+    scripts: [
+      // Site-wide Adsterra popunder (one per page) + social bar.
+      { src: "https://welcomingexpulsion.com/ba/d4/6e/bad46e9bfd80a6a85742d5c4532f934a.js", async: true },
+      { src: "https://welcomingexpulsion.com/c6/3c/78/c63c788d96e03882d96b82b881204b46.js", async: true },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,

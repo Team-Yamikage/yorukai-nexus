@@ -43,7 +43,10 @@ function ProfilePage() {
     );
   }
 
-  const name = profile?.display_name || user?.email?.split("@")[0] || "Senpai";
+  const meta = (user?.user_metadata ?? {}) as Record<string, string | undefined>;
+  const name =
+    profile?.display_name || meta.full_name || meta.name || user?.email?.split("@")[0] || "Senpai";
+  const avatar = profile?.avatar_url || meta.avatar_url || meta.picture || null;
   const xp = profile?.xp ?? 0;
   const level = profile?.level ?? 1;
   const xpInLevel = xp % 1000;
@@ -55,8 +58,8 @@ function ProfilePage() {
 
       <div className="senpai-glass senpai-glass-strong mt-10 flex flex-col items-center gap-6 rounded-3xl p-8 sm:flex-row sm:items-center">
         <div className="grid h-28 w-28 flex-none place-items-center overflow-hidden rounded-full bg-gradient-to-br from-senpai-violet to-senpai-fuchsia text-4xl font-bold text-white">
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt={name} className="h-full w-full object-cover" />
+          {avatar ? (
+            <img src={avatar} alt={name} referrerPolicy="no-referrer" className="h-full w-full object-cover" />
           ) : (
             name.charAt(0).toUpperCase()
           )}

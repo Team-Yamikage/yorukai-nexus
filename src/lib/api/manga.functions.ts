@@ -27,7 +27,13 @@ export type MangaChapter = {
 
 function pickTitle(attr: any): string {
   const t = attr?.title ?? {};
-  return t.en || t["ja-ro"] || t.ja || Object.values(t)[0] || "Untitled";
+  // Prefer an English title. MangaDex often stores the English name only in
+  // altTitles (the main `title` may be romaji/Japanese), so scan there too.
+  if (t.en) return t.en;
+  const alts: any[] = attr?.altTitles ?? [];
+  const enAlt = alts.map((a) => a?.en).find(Boolean);
+  if (enAlt) return enAlt;
+  return t["ja-ro"] || t.ja || Object.values(t)[0] || "Untitled";
 }
 
 function pickDescription(attr: any): string {
@@ -187,7 +193,8 @@ export const mangaChaptersFn = createServerFn({ method: "GET" })
     const all: MangaChapter[] = [];
     let offset = 0;
     let firstPageFailed = false;
-    for (let i = 0; i < 10; i++) {
+    // Up to 50 pages × 100 = 5,000 chapters, enough for even the longest series.
+    for (let i = 0; i < 50; i++) {
       const params = new URLSearchParams();
       params.set("limit", "100");
       params.set("offset", String(offset));

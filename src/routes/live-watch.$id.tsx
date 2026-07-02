@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { HlsPlayer } from "@/components/HlsPlayer";
 import { ShareButton } from "@/components/ShareButton";
 import { liveChannelsQuery } from "@/lib/api/iptv.functions";
+import { Watermark } from "@/components/Watermark";
 
 export const Route = createFileRoute("/live-watch/$id")({
   head: () => ({ meta: [{ title: "Live — YORUKAI.TV" }] }),
@@ -44,7 +45,8 @@ function LiveWatch() {
       </div>
 
       <div className="senpai-glass-strong mt-4 overflow-hidden rounded-3xl ring-1 ring-senpai-violet/30 shadow-[0_30px_120px_-30px_var(--senpai-violet)]">
-        <div className="aspect-video bg-black">
+        <div className="relative aspect-video bg-black">
+          <Watermark position="top-right" />
           <HlsPlayer url={channel.url} poster={channel.logo} className="h-full w-full" />
         </div>
         <div className="flex items-center gap-3 border-t border-senpai-border p-4 sm:p-6">
