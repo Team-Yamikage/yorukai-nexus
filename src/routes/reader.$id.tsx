@@ -7,9 +7,31 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
 /** Swap a failed full-res page image to its data-saver fallback once. */
+/**
+ * Robust page-image loader: retry the full-res URL a few times with
+ * exponential backoff (cache-busting each attempt), then swap to the
+ * data-saver fallback once retries are exhausted.
+ */
 function onPageError(e: React.SyntheticEvent<HTMLImageElement>, fallback: string) {
   const img = e.currentTarget;
-  if (img.dataset.fellback === "1" || img.src === fallback) return;
+  if (img.dataset.fellback === "1") return;
+
+  const original = img.dataset.original ?? img.src.split("#")[0];
+  img.dataset.original = original;
+  const tries = Number(img.dataset.tries ?? "0");
+
+  if (tries < 3 && !img.src.startsWith(fallback.split("/data-saver/")[0] + "/data-saver/")) {
+    img.dataset.tries = String(tries + 1);
+    const delay = 400 * 2 ** tries;
+    setTimeout(() => {
+      // Cache-bust so the browser re-requests instead of reusing the failed entry.
+      img.src = `${original}#retry=${tries + 1}`;
+    }, delay);
+    return;
+  }
+
+  // Retries exhausted → swap to the compressed data-saver page once.
+  if (img.src.split("#")[0] === fallback) return;
   img.dataset.fellback = "1";
   img.src = fallback;
 }
