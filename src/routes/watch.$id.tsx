@@ -19,6 +19,7 @@ import { getDeviceId } from "@/lib/device";
 import { useAuth } from "@/lib/auth";
 import { ShareButton } from "@/components/ShareButton";
 import { recordAppMetric } from "@/lib/api/metrics.functions";
+import { Watermark } from "@/components/Watermark";
 
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — YORUKAI.TV" }] }),
