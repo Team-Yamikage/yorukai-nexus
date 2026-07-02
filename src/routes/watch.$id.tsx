@@ -130,13 +130,15 @@ function Watch() {
     setServerIdx(index);
   };
 
-  // Jump directly to a chosen server (used by the server picker UI).
-  const pickServer = (s: ServerRow) => {
-    setPlaybackError(null);
-    setActiveLang(s.language);
-    const inLang = servers.filter((x) => x.language === s.language);
-    setServerIdx(Math.max(0, inLang.findIndex((x) => x.id === s.id)));
-  };
+  // Automatic background fallback: when a source fails, silently advance to the
+  // next available server (up to one full cycle) without exposing servers to
+  // the user. Reset the counter whenever the episode/server set changes.
+  const autoTries = useRef(0);
+  useEffect(() => {
+    autoTries.current = 0;
+  }, [id, servers.length]);
+
+
 
 
   const videoRef = useRef<HTMLVideoElement>(null);
