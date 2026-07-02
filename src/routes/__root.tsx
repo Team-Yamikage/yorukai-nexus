@@ -114,6 +114,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <meta name="monetag" content="96e58c613f440eae1e4d5ddb3f2a5914" />
         <HeadContent />
       </head>
       <body>
