@@ -103,6 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { src: "https://welcomingexpulsion.com/ba/d4/6e/bad46e9bfd80a6a85742d5c4532f934a.js", async: true },
       { src: "https://welcomingexpulsion.com/c6/3c/78/c63c788d96e03882d96b82b881204b46.js", async: true },
     ],
+  }),
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
