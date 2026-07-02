@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign In — YORUKAI.TV" },
-      { name: "description", content: "Stream beyond. Sign in or join YORUKAI.TV." },
+      { name: "description", content: "Stream beyond. Sign in to YORUKAI.TV with Google." },
     ],
   }),
   component: AuthPage,
@@ -18,13 +18,8 @@ export const Route = createFileRoute("/auth")({
 const img = (s: string) => `https://picsum.photos/seed/${s}/1400/1800`;
 
 function AuthPage() {
-  const [tab, setTab] = useState<"login" | "signup">("login");
-  const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -33,36 +28,18 @@ function AuthPage() {
     if (user) navigate({ to: "/" });
   }, [user, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const signInWithGoogle = async () => {
     setError(null);
-    setNotice(null);
     setLoading(true);
     try {
-      if (tab === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        navigate({ to: "/" });
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { display_name: displayName || email.split("@")[0] },
-          },
-        });
-        if (error) throw error;
-        if (data.session) {
-          navigate({ to: "/" });
-        } else {
-          setNotice("Account created. Check your email to confirm, then sign in.");
-          setTab("login");
-        }
-      }
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      // Redirect handled by Supabase OAuth flow.
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
+      setError(err instanceof Error ? err.message : "Google sign-in failed");
       setLoading(false);
     }
   };
@@ -76,7 +53,6 @@ function AuthPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_30%,rgba(161,107,255,0.45),transparent_55%)]" />
         <div className="absolute inset-0 senpai-halftone opacity-20" />
 
-        {/* Floating particles */}
         {Array.from({ length: 14 }).map((_, i) => (
           <motion.span
             key={i}
@@ -139,57 +115,31 @@ function AuthPage() {
             Access Terminal
           </div>
           <h2 className="senpai-mega mt-2 text-4xl">
-            {tab === "login" ? <span className="senpai-grad-text">Sign In</span> : <span className="senpai-grad-text-cyber">Join</span>}
+            <span className="senpai-grad-text">Sign In</span>
           </h2>
+          <p className="mt-3 text-sm text-senpai-text-dim">
+            Continue with your Google account to start streaming.
+          </p>
 
-          <div className="mt-6 grid grid-cols-2 rounded-full bg-white/5 p-1 ring-1 ring-senpai-border">
-            {(["login", "signup"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => { setTab(t); setError(null); setNotice(null); }}
-                className="relative rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest"
-              >
-                {tab === t && (
-                  <motion.span
-                    layoutId="tab-pill"
-                    className="absolute inset-0 rounded-full bg-gradient-to-r from-senpai-violet to-senpai-fuchsia shadow-[0_8px_24px_-8px_var(--senpai-fuchsia)]"
-                  />
-                )}
-                <span className={`relative ${tab === t ? "text-white" : "text-senpai-text-muted"}`}>
-                  {t === "login" ? "Login" : "Sign up"}
-                </span>
-              </button>
-            ))}
-          </div>
+          {error && (
+            <div className="mt-5 rounded-xl bg-red-500/10 px-3.5 py-2.5 text-xs text-red-300 ring-1 ring-red-500/30">{error}</div>
+          )}
 
-          <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-            {tab === "signup" && (
-              <Field label="Display name" placeholder="senpai_07" icon={<UserGlyph />} value={displayName} onChange={setDisplayName} autoComplete="nickname" />
+          <button
+            type="button"
+            onClick={signInWithGoogle}
+            disabled={loading}
+            className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl bg-white py-3 font-semibold text-gray-800 shadow-[0_12px_40px_-12px_rgba(255,255,255,0.35)] transition-transform hover:scale-[1.01] disabled:opacity-60 disabled:hover:scale-100"
+          >
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-gray-700" />
+            ) : (
+              <>
+                <GoogleGlyph />
+                Continue with Google
+              </>
             )}
-            <Field label="Email" type="email" placeholder="you@beyond.tv" icon={<Mail className="h-4 w-4" />} value={email} onChange={setEmail} required autoComplete="email" />
-            <Field label="Password" type="password" placeholder="••••••••" icon={<Lock className="h-4 w-4" />} value={password} onChange={setPassword} required autoComplete={tab === "login" ? "current-password" : "new-password"} />
-
-            {error && (
-              <div className="rounded-xl bg-red-500/10 px-3.5 py-2.5 text-xs text-red-300 ring-1 ring-red-500/30">{error}</div>
-            )}
-            {notice && (
-              <div className="rounded-xl bg-senpai-teal/10 px-3.5 py-2.5 text-xs text-senpai-teal ring-1 ring-senpai-teal/30">{notice}</div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-senpai-violet via-senpai-fuchsia to-senpai-pink py-3 font-semibold text-white shadow-[0_12px_40px_-12px_var(--senpai-fuchsia)] transition-transform hover:scale-[1.01] disabled:opacity-60 disabled:hover:scale-100"
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
-                <>
-                  {tab === "login" ? "Enter the night" : "Create account"}
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </>
-              )}
-            </button>
-          </form>
+          </button>
 
           <p className="mt-6 text-center text-xs text-senpai-text-muted">
             By continuing you agree to the <span className="text-senpai-text-dim underline-offset-4 hover:underline">Terms</span> &{" "}
@@ -201,35 +151,13 @@ function AuthPage() {
   );
 }
 
-function Field({
-  label, type = "text", placeholder, icon, value, onChange, required, autoComplete,
-}: {
-  label: string; type?: string; placeholder?: string; icon: React.ReactNode;
-  value: string; onChange: (v: string) => void; required?: boolean; autoComplete?: string;
-}) {
+function GoogleGlyph() {
   return (
-    <label className="block">
-      <span className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">{label}</span>
-      <div className="mt-1.5 flex items-center gap-2 rounded-xl bg-white/5 px-3.5 py-2.5 ring-1 ring-senpai-border transition-all focus-within:bg-white/10 focus-within:ring-senpai-violet focus-within:shadow-[0_0_0_4px_rgba(161,107,255,0.18)]">
-        <span className="text-senpai-text-muted">{icon}</span>
-        <input
-          type={type}
-          required={required}
-          autoComplete={autoComplete}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full bg-transparent text-sm text-white placeholder:text-senpai-text-muted/70 outline-none"
-        />
-      </div>
-    </label>
-  );
-}
-
-function UserGlyph() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-7 8-7s8 3 8 7" />
+    <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z" />
+      <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z" />
     </svg>
   );
 }
