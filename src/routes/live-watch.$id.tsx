@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { HlsPlayer } from "@/components/HlsPlayer";
 import { ShareButton } from "@/components/ShareButton";
 import { liveChannelsQuery } from "@/lib/api/iptv.functions";
+import { Watermark } from "@/components/Watermark";
 
 export const Route = createFileRoute("/live-watch/$id")({
   head: () => ({ meta: [{ title: "Live — YORUKAI.TV" }] }),
