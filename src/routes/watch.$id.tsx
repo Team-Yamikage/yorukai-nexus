@@ -247,6 +247,7 @@ function Watch() {
         <div className="senpai-glass-strong relative overflow-hidden rounded-3xl ring-1 ring-senpai-violet/30 shadow-[0_30px_120px_-30px_var(--senpai-violet)]">
           {/* Player */}
           <div className="relative aspect-video bg-black">
+            <Watermark position="top-right" />
             {!activeServer ? (
               <div className="grid h-full place-items-center text-center p-8">
                 <div>
