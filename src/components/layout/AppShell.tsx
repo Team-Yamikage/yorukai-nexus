@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { GlassNavbar } from "./GlassNavbar";
 import { FloatingSidebar } from "./FloatingSidebar";
+import { AdBanner } from "@/components/AdBanner";
 
 export function AppShell({ children }: { children: ReactNode }) {
   // Apply the saved "reduce motion" preference on every page load.
