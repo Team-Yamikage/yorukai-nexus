@@ -116,6 +116,11 @@ function Reader() {
 
   return (
     <div className="min-h-dvh bg-black text-white">
+      <div aria-hidden className="pointer-events-none fixed bottom-4 right-4 z-40 select-none">
+        <span className="font-[var(--font-display)] text-xs sm:text-sm font-bold tracking-widest text-white/60 drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
+          YORUKAI<span className="text-senpai-fuchsia">.</span>TV
+        </span>
+      </div>
       <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-white/10 bg-black/70 px-4 py-3 backdrop-blur">
         {manga ? (
           <Link to="/manga/$id" params={{ id: manga }} className="senpai-glass inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs uppercase tracking-widest hover:bg-white/10">
