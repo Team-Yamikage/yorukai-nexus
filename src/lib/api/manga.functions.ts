@@ -193,7 +193,8 @@ export const mangaChaptersFn = createServerFn({ method: "GET" })
     const all: MangaChapter[] = [];
     let offset = 0;
     let firstPageFailed = false;
-    for (let i = 0; i < 10; i++) {
+    // Up to 50 pages × 100 = 5,000 chapters, enough for even the longest series.
+    for (let i = 0; i < 50; i++) {
       const params = new URLSearchParams();
       params.set("limit", "100");
       params.set("offset", String(offset));
