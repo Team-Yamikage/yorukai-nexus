@@ -195,6 +195,23 @@ function Watch() {
     }
   }, [serverData, rawServers.length, blocked, id]);
 
+  // Auto-advance to the next server in the background when playback fails, so
+  // users never have to pick a server manually. Stops after one full cycle.
+  useEffect(() => {
+    if (!playbackError) return;
+    if (servers.length <= 1) return;
+    if (autoTries.current >= servers.length - 1) return;
+    autoTries.current += 1;
+    const t = setTimeout(() => {
+      const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
+      setActiveLang(lang);
+      setServerIdx(index);
+      setPlaybackError(null);
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [playbackError, servers, activeLang, serverIdx]);
+
+
   // Show intro skip between 5-90s
   useEffect(() => {
     setShowIntroSkip(progress > 5 && progress < 90);
