@@ -130,13 +130,15 @@ function Watch() {
     setServerIdx(index);
   };
 
-  // Jump directly to a chosen server (used by the server picker UI).
-  const pickServer = (s: ServerRow) => {
-    setPlaybackError(null);
-    setActiveLang(s.language);
-    const inLang = servers.filter((x) => x.language === s.language);
-    setServerIdx(Math.max(0, inLang.findIndex((x) => x.id === s.id)));
-  };
+  // Automatic background fallback: when a source fails, silently advance to the
+  // next available server (up to one full cycle) without exposing servers to
+  // the user. Reset the counter whenever the episode/server set changes.
+  const autoTries = useRef(0);
+  useEffect(() => {
+    autoTries.current = 0;
+  }, [id, servers.length]);
+
+
 
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -192,6 +194,23 @@ function Watch() {
       }).catch(() => {});
     }
   }, [serverData, rawServers.length, blocked, id]);
+
+  // Auto-advance to the next server in the background when playback fails, so
+  // users never have to pick a server manually. Stops after one full cycle.
+  useEffect(() => {
+    if (!playbackError) return;
+    if (servers.length <= 1) return;
+    if (autoTries.current >= servers.length - 1) return;
+    autoTries.current += 1;
+    const t = setTimeout(() => {
+      const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
+      setActiveLang(lang);
+      setServerIdx(index);
+      setPlaybackError(null);
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [playbackError, servers, activeLang, serverIdx]);
+
 
   // Show intro skip between 5-90s
   useEffect(() => {
@@ -385,16 +404,6 @@ function Watch() {
               {activeServer && (
                 <span className="inline-flex items-center gap-1"><Settings className="h-3.5 w-3.5" /> {activeServer.quality}</span>
               )}
-              {activeServer?.embed_url && (
-                <a
-                  href={activeServer.embed_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="senpai-glass inline-flex items-center gap-1 rounded-full px-3 py-1.5 font-semibold uppercase tracking-widest text-senpai-text-dim hover:text-white"
-                >
-                  Open in new tab
-                </a>
-              )}
               {servers.length > 1 && (
                 <button
                   onClick={tryAnother}
@@ -406,35 +415,6 @@ function Watch() {
             </div>
           </div>
 
-          {/* Server picker — choose any available source directly */}
-          {langServers.length > 0 && (
-            <div className="border-t border-senpai-border p-4 sm:p-6">
-              <div className="font-[var(--font-mono)] mb-3 flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">
-                <Settings className="h-3.5 w-3.5" /> Servers
-                <span className="ml-1 text-senpai-text-dim/70">({langServers.length} available · {activeLang})</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {langServers.map((s) => {
-                  const isActive = activeServer?.id === s.id;
-                  const reachable = health[s.id];
-                  return (
-                    <button
-                      key={s.id}
-                      onClick={() => pickServer(s)}
-                      className={`group inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold tracking-wide transition-colors ${isActive ? "bg-gradient-to-r from-senpai-violet to-senpai-fuchsia text-white shadow-[0_0_16px_-4px_var(--senpai-fuchsia)]" : "senpai-glass text-senpai-text-dim hover:text-white"}`}
-                    >
-                      <span
-                        className={`h-2 w-2 rounded-full ${reachable === false ? "bg-red-500" : reachable ? "bg-emerald-400" : "bg-yellow-400/70"}`}
-                        title={reachable === false ? "Unreachable" : reachable ? "Online" : "Checking…"}
-                      />
-                      {s.server_name}
-                      <span className="opacity-60">· {s.quality}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
 
 
