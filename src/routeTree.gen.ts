@@ -23,6 +23,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MangaIndexRouteImport } from './routes/manga.index'
 import { Route as WatchIdRouteImport } from './routes/watch.$id'
+import { Route as ReportsEpisodesRouteImport } from './routes/reports.episodes'
 import { Route as ReaderIdRouteImport } from './routes/reader.$id'
 import { Route as MangaIdRouteImport } from './routes/manga.$id'
 import { Route as LiveWatchIdRouteImport } from './routes/live-watch.$id'
@@ -98,6 +99,11 @@ const WatchIdRoute = WatchIdRouteImport.update({
   path: '/watch/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsEpisodesRoute = ReportsEpisodesRouteImport.update({
+  id: '/reports/episodes',
+  path: '/reports/episodes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReaderIdRoute = ReaderIdRouteImport.update({
   id: '/reader/$id',
   path: '/reader/$id',
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/live-watch/$id': typeof LiveWatchIdRoute
   '/manga/$id': typeof MangaIdRoute
   '/reader/$id': typeof ReaderIdRoute
+  '/reports/episodes': typeof ReportsEpisodesRoute
   '/watch/$id': typeof WatchIdRoute
   '/manga/': typeof MangaIndexRoute
 }
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/live-watch/$id': typeof LiveWatchIdRoute
   '/manga/$id': typeof MangaIdRoute
   '/reader/$id': typeof ReaderIdRoute
+  '/reports/episodes': typeof ReportsEpisodesRoute
   '/watch/$id': typeof WatchIdRoute
   '/manga': typeof MangaIndexRoute
 }
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/live-watch/$id': typeof LiveWatchIdRoute
   '/manga/$id': typeof MangaIdRoute
   '/reader/$id': typeof ReaderIdRoute
+  '/reports/episodes': typeof ReportsEpisodesRoute
   '/watch/$id': typeof WatchIdRoute
   '/manga/': typeof MangaIndexRoute
 }
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/live-watch/$id'
     | '/manga/$id'
     | '/reader/$id'
+    | '/reports/episodes'
     | '/watch/$id'
     | '/manga/'
   fileRoutesByTo: FileRoutesByTo
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/live-watch/$id'
     | '/manga/$id'
     | '/reader/$id'
+    | '/reports/episodes'
     | '/watch/$id'
     | '/manga'
   id:
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/live-watch/$id'
     | '/manga/$id'
     | '/reader/$id'
+    | '/reports/episodes'
     | '/watch/$id'
     | '/manga/'
   fileRoutesById: FileRoutesById
@@ -257,6 +269,7 @@ export interface RootRouteChildren {
   DetailIdRoute: typeof DetailIdRoute
   LiveWatchIdRoute: typeof LiveWatchIdRoute
   ReaderIdRoute: typeof ReaderIdRoute
+  ReportsEpisodesRoute: typeof ReportsEpisodesRoute
   WatchIdRoute: typeof WatchIdRoute
 }
 
@@ -360,6 +373,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WatchIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/episodes': {
+      id: '/reports/episodes'
+      path: '/reports/episodes'
+      fullPath: '/reports/episodes'
+      preLoaderRoute: typeof ReportsEpisodesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reader/$id': {
       id: '/reader/$id'
       path: '/reader/$id'
@@ -419,6 +439,7 @@ const rootRouteChildren: RootRouteChildren = {
   DetailIdRoute: DetailIdRoute,
   LiveWatchIdRoute: LiveWatchIdRoute,
   ReaderIdRoute: ReaderIdRoute,
+  ReportsEpisodesRoute: ReportsEpisodesRoute,
   WatchIdRoute: WatchIdRoute,
 }
 export const routeTree = rootRouteImport
