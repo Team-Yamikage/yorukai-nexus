@@ -3,7 +3,12 @@ import { useAuth } from "@/lib/auth";
 
 const AD_SCRIPT_ID = "yk-non-premium-ad-network";
 
-const AD_SCRIPTS = [
+type AdScriptConfig = {
+  src: string;
+  attrs?: Record<string, string>;
+};
+
+const AD_SCRIPTS: AdScriptConfig[] = [
   // Quge5 / verification zone delivery.
   { src: "https://quge5.com/88/tag.min.js", attrs: { "data-zone": "255437", "data-cfasync": "false" } },
   // Existing site-wide pop/social placements.
@@ -13,7 +18,7 @@ const AD_SCRIPTS = [
   { src: "https://massivesalad.com/bdXXVrsHd.GDlt0HY/W_cS/LeemY9/uKZHUIlVkGPwTKcRxtOUD_ga2/NCDzEZtTNDzxEl4BO/DEYk0ANDQf" },
   { src: "https://massivesalad.com/bwXUVas.dXG/lN0VY_W/ca/qe/m/9Ru/Z/UElUkGPjTQcPxKOoD/gY2aNnT/cGtYN/zREQ4/O-D/Yj2EMZQc" },
   { src: "https://massivesalad.com/b.X/V/sJdNGolO0GY/WDcU/zemmC9TuUZmU/l/k/PJTscux/OdDNgB2pNnzWMut/Nnz/Ec4jOhDDYe3zN/wd" },
-] as const;
+];
 
 export function AdNetworkScripts() {
   const { loading, isPremium } = useAuth();
