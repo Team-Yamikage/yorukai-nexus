@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
-import { ChevronLeft, ChevronRight, SkipForward, Settings, Languages, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
+import { ChevronLeft, ChevronRight, SkipForward, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, Loader2 } from "lucide-react";
 import { episodeQuery, episodeServersQuery, FALLBACK_POSTER, type ServerRow } from "@/lib/api/content";
 import {
   playableServers,
@@ -20,6 +20,8 @@ import { useAuth } from "@/lib/auth";
 import { ShareButton } from "@/components/ShareButton";
 import { recordAppMetric } from "@/lib/api/metrics.functions";
 import { Watermark } from "@/components/Watermark";
+import { AdBanner } from "@/components/AdBanner";
+import { VideoPrerollAd } from "@/components/ads/VideoPrerollAd";
 
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — YORUKAI.TV" }] }),
@@ -44,7 +46,7 @@ export const Route = createFileRoute("/watch/$id")({
 function Watch() {
   const { id } = Route.useParams();
   const { data } = useSuspenseQuery(episodeQuery(id));
-  const { user } = useAuth();
+  const { user, loading: authLoading, isPremium } = useAuth();
   const qc = useQueryClient();
   const ep = data.episode!;
   const content = data.content;
@@ -52,7 +54,7 @@ function Watch() {
   // Servers are fetched through the guarded server function (ban + rate-limit
   // checks) using the per-device id.
   const deviceId = useMemo(() => getDeviceId(), []);
-  const { data: serverData } = useQuery(episodeServersQuery(id, deviceId));
+  const { data: serverData, isLoading: serversLoading, isFetching: serversFetching } = useQuery(episodeServersQuery(id, deviceId));
   const rawServers = useMemo<ServerRow[]>(() => serverData?.servers ?? [], [serverData]);
   const blocked = serverData?.blocked;
 
@@ -110,7 +112,11 @@ function Watch() {
     () => servers.filter((s) => s.language === activeLang),
     [servers, activeLang],
   );
-  const activeServer: ServerRow | null = langServers[serverIdx] ?? langServers[0] ?? servers[0] ?? null;
+  useEffect(() => {
+    if (serverIdx >= langServers.length && langServers.length > 0) setServerIdx(0);
+  }, [serverIdx, langServers.length]);
+
+  const activeServer: ServerRow | null = langServers[serverIdx] ?? langServers[0] ?? null;
   const isEmbed = isEmbedUrl(activeServer?.embed_url);
 
   // User-facing playback error (sandbox / CORS / expired / dns / network).
@@ -148,6 +154,15 @@ function Watch() {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showIntroSkip, setShowIntroSkip] = useState(false);
+  const [prerollDone, setPrerollDone] = useState(false);
+
+  useEffect(() => {
+    setPrerollDone(false);
+    setPlaybackError(null);
+  }, [id]);
+
+  const showPreroll = !authLoading && !isPremium && !prerollDone;
+  const canLoadPlayer = !showPreroll;
 
   const idxInSiblings = data.siblings.findIndex((s) => s.id === ep.id);
   const prevEp = data.siblings[idxInSiblings - 1];
@@ -172,7 +187,7 @@ function Watch() {
   // Mount HLS for direct streams
   useEffect(() => {
     const v = videoRef.current;
-    if (!v || !activeServer?.embed_url) return;
+    if (!canLoadPlayer || !v || !activeServer?.embed_url) return;
     const url = activeServer.embed_url;
     if (!/\.m3u8(\?|$)/i.test(url)) {
       v.src = url;
@@ -186,7 +201,7 @@ function Watch() {
     } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
       v.src = url;
     }
-  }, [activeServer]);
+  }, [activeServer, canLoadPlayer]);
 
   useEffect(() => {
     if (serverData && rawServers.length === 0) {
