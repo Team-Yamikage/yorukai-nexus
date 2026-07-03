@@ -39,7 +39,7 @@ export const missingServersReportFn = createServerFn({ method: "GET" })
         id: e.id,
         title: e.title,
         episodeNumber: e.episode_number,
-        contentId: e.content_id,
+        contentId: e.content_id ?? "",
         // supabase returns the joined relation as an object or array depending on FK cardinality
         contentTitle:
           (Array.isArray(e.content) ? e.content[0]?.title : (e.content as { title?: string } | null)?.title) ??
