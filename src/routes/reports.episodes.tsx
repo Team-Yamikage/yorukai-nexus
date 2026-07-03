@@ -88,7 +88,7 @@ function ReportView() {
                     <div className="flex items-center justify-between gap-4">
                       <Link
                         to="/detail/$id"
-                        params={{ id: g.contentId }}
+                        params={{ id: g.contentId ?? "" }}
                         className="text-lg font-semibold text-senpai-text hover:text-senpai-fuchsia"
                       >
                         {g.contentTitle}
