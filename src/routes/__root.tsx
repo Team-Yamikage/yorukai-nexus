@@ -115,6 +115,8 @@ function RootShell({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <meta name="monetag" content="96e58c613f440eae1e4d5ddb3f2a5914" />
+        <meta name="ca088e23ccb84428dad870a05694992364d52a92" content="ca088e23ccb84428dad870a05694992364d52a92" />
+        <script src="https://quge5.com/88/tag.min.js" data-zone="255437" async data-cfasync="false"></script>
         <HeadContent />
       </head>
       <body>
