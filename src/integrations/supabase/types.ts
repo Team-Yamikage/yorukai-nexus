@@ -71,6 +71,42 @@ export type Database = {
         }
         Relationships: []
       }
+      bot_users: {
+        Row: {
+          allowed: boolean | null
+          allowed_at: string | null
+          can_watch: boolean | null
+          created_at: string | null
+          first_name: string | null
+          id: string
+          requested: boolean | null
+          telegram_id: string
+          username: string | null
+        }
+        Insert: {
+          allowed?: boolean | null
+          allowed_at?: string | null
+          can_watch?: boolean | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string
+          requested?: boolean | null
+          telegram_id: string
+          username?: string | null
+        }
+        Update: {
+          allowed?: boolean | null
+          allowed_at?: string | null
+          can_watch?: boolean | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string
+          requested?: boolean | null
+          telegram_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
       channel_favorites: {
         Row: {
           channel_id: string
