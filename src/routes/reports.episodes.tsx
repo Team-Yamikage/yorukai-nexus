@@ -105,7 +105,7 @@ function ReportView() {
                           to="/watch/$id"
                           params={{ id: e.id }}
                           className="rounded-lg bg-white/5 px-2.5 py-1.5 text-xs text-senpai-text-dim ring-1 ring-white/10 hover:bg-white/10 hover:text-senpai-text"
-                          title={e.title}
+                          title={e.title ?? undefined}
                         >
                           EP {e.episodeNumber}
                         </Link>
