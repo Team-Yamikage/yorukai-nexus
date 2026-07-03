@@ -153,5 +153,5 @@ export function classifyPlaybackError(input: {
   if (msg.includes("network") || msg.includes("failed to fetch") || msg.includes("timeout")) {
     return { reason: "network", label: "Network error reaching the source." };
   }
-  return { reason: "unknown", label: "Playback failed. Try another server." };
+  return { reason: "unknown", label: "Playback is retrying another source." };
 }

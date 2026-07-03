@@ -24,6 +24,10 @@ export function AdNetworkScripts() {
   const { loading, isPremium } = useAuth();
 
   useEffect(() => {
+    if (isPremium) {
+      document.querySelectorAll(`[data-ad-pack="${AD_SCRIPT_ID}"]`).forEach((node) => node.remove());
+      return;
+    }
     if (loading || isPremium) return;
     if (document.querySelector(`[data-ad-pack="${AD_SCRIPT_ID}"]`)) return;
 
