@@ -116,7 +116,7 @@ function Watch() {
     if (serverIdx >= langServers.length && langServers.length > 0) setServerIdx(0);
   }, [serverIdx, langServers.length]);
 
-  const activeServer: ServerRow | null = langServers[serverIdx] ?? langServers[0] ?? null;
+  const activeServer: ServerRow | null = langServers[serverIdx] ?? langServers[0] ?? servers[serverIdx] ?? servers[0] ?? null;
   const isEmbed = isEmbedUrl(activeServer?.embed_url);
 
   // User-facing playback error (sandbox / CORS / expired / dns / network).
