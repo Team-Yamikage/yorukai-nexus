@@ -20,7 +20,7 @@ import type { ServerRow } from "./content";
  * of it fails (missing secret, transient DB error, runtime without an IP), it
  * must NEVER take down playback for every user. All guard steps are wrapped so
  * the worst case degrades to "serve the episode" rather than a 500 that breaks
- * the whole site and shows "NO SERVERS" everywhere.
+ * the whole site and leaves playback stuck everywhere.
  */
 
 const DeviceInput = z.object({

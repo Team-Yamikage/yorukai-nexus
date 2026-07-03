@@ -129,7 +129,7 @@ function Watch() {
       data: {
         source: "stream",
         name: "server_cycle_requested",
-        labels: { episodeId: id, serverCount: servers.length, activeServer: activeServer?.id ?? null },
+        labels: { episodeId: id, sourceCount: servers.length, activeSource: activeServer?.id ?? null },
       },
     }).catch(() => {});
     const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
