@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
-import { ChevronLeft, ChevronRight, SkipForward, Settings, Languages, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
+import { ChevronLeft, ChevronRight, SkipForward, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, Loader2 } from "lucide-react";
 import { episodeQuery, episodeServersQuery, FALLBACK_POSTER, type ServerRow } from "@/lib/api/content";
 import {
   playableServers,
@@ -20,6 +20,8 @@ import { useAuth } from "@/lib/auth";
 import { ShareButton } from "@/components/ShareButton";
 import { recordAppMetric } from "@/lib/api/metrics.functions";
 import { Watermark } from "@/components/Watermark";
+import { AdBanner } from "@/components/AdBanner";
+import { VideoPrerollAd } from "@/components/ads/VideoPrerollAd";
 
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — YORUKAI.TV" }] }),
@@ -44,7 +46,7 @@ export const Route = createFileRoute("/watch/$id")({
 function Watch() {
   const { id } = Route.useParams();
   const { data } = useSuspenseQuery(episodeQuery(id));
-  const { user } = useAuth();
+  const { user, loading: authLoading, isPremium } = useAuth();
   const qc = useQueryClient();
   const ep = data.episode!;
   const content = data.content;
@@ -52,7 +54,7 @@ function Watch() {
   // Servers are fetched through the guarded server function (ban + rate-limit
   // checks) using the per-device id.
   const deviceId = useMemo(() => getDeviceId(), []);
-  const { data: serverData } = useQuery(episodeServersQuery(id, deviceId));
+  const { data: serverData, isLoading: serversLoading, isFetching: serversFetching } = useQuery(episodeServersQuery(id, deviceId));
   const rawServers = useMemo<ServerRow[]>(() => serverData?.servers ?? [], [serverData]);
   const blocked = serverData?.blocked;
 
@@ -110,7 +112,11 @@ function Watch() {
     () => servers.filter((s) => s.language === activeLang),
     [servers, activeLang],
   );
-  const activeServer: ServerRow | null = langServers[serverIdx] ?? langServers[0] ?? servers[0] ?? null;
+  useEffect(() => {
+    if (serverIdx >= langServers.length && langServers.length > 0) setServerIdx(0);
+  }, [serverIdx, langServers.length]);
+
+  const activeServer: ServerRow | null = langServers[serverIdx] ?? langServers[0] ?? servers[serverIdx] ?? servers[0] ?? null;
   const isEmbed = isEmbedUrl(activeServer?.embed_url);
 
   // User-facing playback error (sandbox / CORS / expired / dns / network).
@@ -123,7 +129,7 @@ function Watch() {
       data: {
         source: "stream",
         name: "server_cycle_requested",
-        labels: { episodeId: id, serverCount: servers.length, activeServer: activeServer?.id ?? null },
+        labels: { episodeId: id, sourceCount: servers.length, activeSource: activeServer?.id ?? null },
       },
     }).catch(() => {});
     const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
@@ -148,6 +154,15 @@ function Watch() {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showIntroSkip, setShowIntroSkip] = useState(false);
+  const [prerollDone, setPrerollDone] = useState(false);
+
+  useEffect(() => {
+    setPrerollDone(false);
+    setPlaybackError(null);
+  }, [id]);
+
+  const showPreroll = !authLoading && !isPremium && !prerollDone;
+  const canLoadPlayer = !authLoading && (isPremium || prerollDone);
 
   const idxInSiblings = data.siblings.findIndex((s) => s.id === ep.id);
   const prevEp = data.siblings[idxInSiblings - 1];
@@ -172,7 +187,7 @@ function Watch() {
   // Mount HLS for direct streams
   useEffect(() => {
     const v = videoRef.current;
-    if (!v || !activeServer?.embed_url) return;
+    if (!canLoadPlayer || !v || !activeServer?.embed_url) return;
     const url = activeServer.embed_url;
     if (!/\.m3u8(\?|$)/i.test(url)) {
       v.src = url;
@@ -186,7 +201,7 @@ function Watch() {
     } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
       v.src = url;
     }
-  }, [activeServer]);
+  }, [activeServer, canLoadPlayer]);
 
   useEffect(() => {
     if (serverData && rawServers.length === 0) {
@@ -249,20 +264,27 @@ function Watch() {
           {/* Player */}
           <div className="relative aspect-video bg-black">
             <Watermark position="top-right" />
-            {!activeServer ? (
+            {!activeServer || !canLoadPlayer ? (
               <div className="grid h-full place-items-center text-center p-8">
                 <div>
+                  <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-senpai-fuchsia" />
                   <div className="senpai-mega text-3xl senpai-grad-text-fire">
-                    {blocked === "banned" ? "ACCESS BLOCKED" : blocked === "rate_limited" ? "SLOW DOWN" : "NO SERVERS"}
+                    {blocked === "banned" ? "ACCESS BLOCKED" : blocked === "rate_limited" ? "SLOW DOWN" : "LOADING STREAM"}
                   </div>
                   <p className="mt-2 text-sm text-senpai-text-dim">
                     {blocked === "banned"
                       ? "This device has been blocked from streaming."
                       : blocked === "rate_limited"
                       ? "Too many requests — please wait a moment and refresh."
+                      : authLoading
+                      ? "Checking your viewing status."
+                      : showPreroll
+                      ? "Preparing a short sponsor message before playback."
+                      : serversLoading || serversFetching || !serverData
+                      ? "Checking every playable source."
                       : rawServers.length > 0
-                      ? "All known sources for this episode are offline or unreachable right now."
-                      : "This episode has no playable servers yet."}
+                      ? "Still testing sources in the background."
+                      : "Searching for a playable source."}
                   </p>
                 </div>
               </div>
@@ -361,7 +383,7 @@ function Watch() {
             {playbackError && activeServer && (
               <div className="absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-3 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-6 text-center">
                 <p className="max-w-md text-sm text-senpai-text-dim">
-                  <span className="font-semibold text-white">Can’t play this source.</span>{" "}
+                  <span className="font-semibold text-white">Still loading.</span>{" "}
                   {playbackError.label}
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-2">
@@ -370,7 +392,7 @@ function Watch() {
                       onClick={tryAnother}
                       className="rounded-full bg-gradient-to-r from-senpai-violet to-senpai-fuchsia px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white"
                     >
-                      Try another server
+                      Try another source
                     </button>
                   )}
                   <button
@@ -382,45 +404,33 @@ function Watch() {
                 </div>
               </div>
             )}
+            {showPreroll && <VideoPrerollAd onComplete={() => setPrerollDone(true)} />}
           </div>
 
 
-          {/* Bottom bar — language (audio) selector */}
-          <div className="grid gap-4 border-t border-senpai-border p-4 sm:p-6 md:grid-cols-[1fr_auto]">
-            <div className="flex flex-wrap gap-2">
-              <div className="font-[var(--font-mono)] mr-2 flex items-center gap-1 text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted self-center">
-                <Languages className="h-3.5 w-3.5" /> Language
-              </div>
-              {languages.length === 0 && <span className="text-xs text-senpai-text-muted">No playable language tracks yet.</span>}
-              {languages.map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => { setActiveLang(lang); setServerIdx(0); }}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-widest ${activeLang === lang ? "bg-gradient-to-r from-senpai-violet to-senpai-fuchsia text-white shadow-[0_0_16px_-4px_var(--senpai-fuchsia)]" : "senpai-glass text-senpai-text-dim hover:text-white"}`}
-                >
-                  {lang}
-                </button>
-              ))}
+          {/* Source metadata can be wrong, so language/server labels stay hidden. */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-senpai-border p-4 sm:p-6">
+            <div className="text-xs uppercase tracking-[0.25em] text-senpai-text-muted">
+              {activeServer ? "Auto-selected playback" : "Preparing playback"}
             </div>
-            <div className="flex items-center gap-3 text-xs text-senpai-text-dim justify-end">
-              {activeServer && (
-                <span className="inline-flex items-center gap-1"><Settings className="h-3.5 w-3.5" /> {activeServer.quality}</span>
-              )}
-              {servers.length > 1 && (
-                <button
-                  onClick={tryAnother}
-                  className="senpai-glass inline-flex items-center gap-1 rounded-full px-3 py-1.5 font-semibold uppercase tracking-widest text-senpai-text-dim hover:text-white"
-                >
-                  Not loading? Try another
-                </button>
-              )}
-            </div>
+            {servers.length > 1 && (
+              <button
+                onClick={tryAnother}
+                className="senpai-glass inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-senpai-text-dim hover:text-white"
+              >
+                Not loading? Retry
+              </button>
+            )}
           </div>
 
 
 
 
 
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <AdBanner adKey="921c3b2b7865019cf9b9ece13ab15bf4" width={468} height={60} />
         </div>
 
         {/* Prev/Next + Episode strip */}
