@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useAuth } from "@/lib/auth";
 
 /**
  * Renders an Adsterra iframe-format banner inside an isolated sandboxed iframe.
@@ -17,6 +18,7 @@ export function AdBanner({
   height: number;
   className?: string;
 }) {
+  const { loading, isPremium } = useAuth();
   const srcDoc = useMemo(
     () => `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}</style></head><body>
 <script type="text/javascript">
@@ -26,6 +28,8 @@ export function AdBanner({
 </body></html>`,
     [adKey, width, height],
   );
+
+  if (loading || isPremium) return null;
 
   return (
     <div className={`flex justify-center ${className}`}>

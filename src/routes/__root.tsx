@@ -10,6 +10,7 @@ import {
 
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth";
+import { AdNetworkScripts } from "@/components/ads/AdNetworkScripts";
 
 function NotFoundComponent() {
   return (
@@ -98,11 +99,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Bebas+Neue&family=Bowlby+One&family=Caveat:wght@400;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@400;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap",
       },
     ],
-    scripts: [
-      // Site-wide Adsterra popunder (one per page) + social bar.
-      { src: "https://welcomingexpulsion.com/ba/d4/6e/bad46e9bfd80a6a85742d5c4532f934a.js", async: true },
-      { src: "https://welcomingexpulsion.com/c6/3c/78/c63c788d96e03882d96b82b881204b46.js", async: true },
-    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -116,7 +112,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <head>
         <meta name="monetag" content="96e58c613f440eae1e4d5ddb3f2a5914" />
         <meta name="ca088e23ccb84428dad870a05694992364d52a92" content="ca088e23ccb84428dad870a05694992364d52a92" />
-        <script src="https://quge5.com/88/tag.min.js" data-zone="255437" async data-cfasync="false"></script>
         <HeadContent />
       </head>
       <body>
@@ -133,6 +128,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <AdNetworkScripts />
         <Outlet />
       </AuthProvider>
     </QueryClientProvider>

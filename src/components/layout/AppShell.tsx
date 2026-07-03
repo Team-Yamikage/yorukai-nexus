@@ -17,6 +17,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="pointer-events-none fixed -top-40 left-1/2 -z-10 h-[60vh] w-[120vw] -translate-x-1/2 senpai-aurora" />
       <GlassNavbar />
       <FloatingSidebar />
+      <div className="relative z-10 flex justify-center px-4 pb-2 pt-20 lg:pl-20">
+        <AdBanner adKey="921c3b2b7865019cf9b9ece13ab15bf4" width={468} height={60} />
+      </div>
       <main className="relative lg:pl-20">{children}</main>
       <div className="relative lg:pl-20 mt-16 flex justify-center px-4">
         <AdBanner adKey="fdec4a5fa967fe156dfa4d2965fe6e0c" width={728} height={90} />
