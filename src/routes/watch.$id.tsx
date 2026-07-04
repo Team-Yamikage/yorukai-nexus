@@ -490,31 +490,6 @@ function Watch() {
               </button>
             )}
 
-            {/* Playback error reason overlay */}
-            {finalPlaybackFailure && playbackError && activeServer && (
-              <div className="absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-3 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-6 text-center">
-                <p className="max-w-md text-sm text-senpai-text-dim">
-                  <span className="font-semibold text-white">Still loading.</span>{" "}
-                  {playbackError.label}
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  {servers.length > 1 && (
-                    <button
-                      onClick={tryAnother}
-                      className="rounded-full bg-gradient-to-r from-senpai-violet to-senpai-fuchsia px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white"
-                    >
-                      Try another source
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setPlaybackError(null)}
-                    className="senpai-glass rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest text-senpai-text-dim hover:text-white"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            )}
             {showPreroll && <VideoPrerollAd onComplete={() => setPrerollDone(true)} />}
           </div>
 
