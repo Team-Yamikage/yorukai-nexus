@@ -161,6 +161,7 @@ function Watch() {
     const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
     setActiveLang(lang);
     setServerIdx(index);
+    autoTries.current += 1;
   };
 
   // Automatic background fallback: when a source fails, silently advance to the
