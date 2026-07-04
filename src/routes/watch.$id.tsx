@@ -491,7 +491,7 @@ function Watch() {
             )}
 
             {/* Playback error reason overlay */}
-            {playbackError && activeServer && (
+            {finalPlaybackFailure && playbackError && activeServer && (
               <div className="absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-3 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-6 text-center">
                 <p className="max-w-md text-sm text-senpai-text-dim">
                   <span className="font-semibold text-white">Still loading.</span>{" "}
@@ -519,10 +519,10 @@ function Watch() {
           </div>
 
 
-          {/* Source metadata can be wrong, so language/server labels stay hidden. */}
+          {/* Source names stay hidden; language reflects the active audio track. */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-senpai-border p-4 sm:p-6">
             <div className="text-xs uppercase tracking-[0.25em] text-senpai-text-muted">
-              {activeServer ? "Auto-selected playback" : "Preparing playback"}
+              {activeServer ? `Playback · ${displayLanguage} audio` : "Preparing playback"}
             </div>
             {servers.length > 1 && (
               <button
