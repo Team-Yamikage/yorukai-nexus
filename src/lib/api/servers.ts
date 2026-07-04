@@ -92,7 +92,7 @@ const LANG_ORDER = [
 /** Distinct languages present in a server list, sorted by preferred order. */
 export function languagesOf(servers: ServerRow[]): string[] {
   const set = Array.from(
-    new Set(servers.map((s) => s.language).filter(Boolean)),
+    new Set(servers.map((s) => normalizeLanguage(s.language)).filter(Boolean)),
   ) as string[];
   return set.sort(
     (a, b) =>
@@ -152,7 +152,7 @@ export function nextServer(
   const langs = languagesOf(servers);
   if (langs.length === 0) return state;
   const lang = state.lang ?? langs[0];
-  const inLang = servers.filter((s) => s.language === lang);
+  const inLang = servers.filter((s) => normalizeLanguage(s.language) === lang);
   if (state.index < inLang.length - 1) {
     return { lang, index: state.index + 1 };
   }
