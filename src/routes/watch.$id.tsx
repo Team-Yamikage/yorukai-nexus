@@ -352,19 +352,40 @@ function Watch() {
           {/* Player */}
           <div className="relative aspect-video bg-black">
             <Watermark position="top-right" />
-            {!activeServer || !canLoadPlayer ? (
+            {finalPlaybackFailure ? (
+              <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_center,rgba(255,72,214,0.16),transparent_50%),#050307] p-8 text-center">
+                <div className="max-w-lg">
+                  <AlertTriangle className="mx-auto mb-4 h-9 w-9 text-senpai-amber" />
+                  <div className="senpai-mega text-4xl senpai-grad-text-fire">
+                    {blocked === "banned" ? "ACCESS BLOCKED" : blocked === "rate_limited" ? "SLOW DOWN" : "STREAM SIGNAL LOST"}
+                  </div>
+                  <p className="mt-3 text-sm text-senpai-text-dim">
+                    {blocked === "banned"
+                      ? "This device has been blocked from streaming."
+                      : blocked === "rate_limited"
+                      ? "Too many stream requests — wait a moment, then try again."
+                      : playbackError?.label ?? "Every available source was tested and none responded."}
+                  </p>
+                  {blocked !== "banned" && blocked !== "rate_limited" && (
+                    <button
+                      type="button"
+                      onClick={retryAllSources}
+                      className="mt-6 rounded-full bg-gradient-to-r from-senpai-violet to-senpai-fuchsia px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-white"
+                    >
+                      Retry playback
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : !activeServer || !canLoadPlayer ? (
               <div className="grid h-full place-items-center text-center p-8">
                 <div>
                   <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-senpai-fuchsia" />
                   <div className="senpai-mega text-3xl senpai-grad-text-fire">
-                    {blocked === "banned" ? "ACCESS BLOCKED" : blocked === "rate_limited" ? "SLOW DOWN" : "LOADING STREAM"}
+                    LOADING STREAM
                   </div>
                   <p className="mt-2 text-sm text-senpai-text-dim">
-                    {blocked === "banned"
-                      ? "This device has been blocked from streaming."
-                      : blocked === "rate_limited"
-                      ? "Too many requests — please wait a moment and refresh."
-                      : authLoading
+                    {authLoading
                       ? "Checking your viewing status."
                       : showPreroll
                       ? "Preparing a short sponsor message before playback."
@@ -384,18 +405,19 @@ function Watch() {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="no-referrer"
-                onLoad={() =>
+                onLoad={() => {
+                  markSourceReady();
                   console.info("[watch] embed loaded", {
                     server: activeServer.server_name,
                     quality: activeServer.quality,
                     language: activeServer.language,
                     url: activeServer.embed_url,
-                  })
-                }
+                  });
+                }}
                 onError={() => {
                   const info = classifyPlaybackError({ url: activeServer.embed_url });
                   console.error("[watch] embed error", { ...info, url: activeServer.embed_url });
-                  setPlaybackError(info);
+                  failActiveSource(info);
                 }}
                 // NOTE: no `sandbox` attribute. Many free embed players detect a
                 // sandboxed iframe and refuse to play ("ads are not being
@@ -408,6 +430,7 @@ function Watch() {
                   ref={videoRef}
                   className="absolute inset-0 h-full w-full"
                   onPlay={() => setPlaying(true)}
+                  onCanPlay={markSourceReady}
                   onPause={() => setPlaying(false)}
                   onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
                   onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
@@ -423,7 +446,7 @@ function Watch() {
                       ...info,
                       url: activeServer.embed_url,
                     });
-                    setPlaybackError(info);
+                    failActiveSource(info);
                   }}
                   poster={ep.thumbnail_url || content?.banner_url || undefined}
                   controls={false}
