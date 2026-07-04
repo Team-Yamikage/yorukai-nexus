@@ -92,8 +92,14 @@ function Watch() {
   }, [rawServers]);
 
 
-  // Group available servers by spoken language (audio track).
-  const languages = useMemo(() => languagesOf(servers), [servers]);
+  // Group available sources by spoken language (audio track), with the
+  // episode/content language first so the UI reflects what is playing.
+  const languages = useMemo(() => {
+    const ordered = languagesOf(servers);
+    const preferred = normalizeLanguage(content?.language);
+    if (!preferred || !ordered.includes(preferred)) return ordered;
+    return [preferred, ...ordered.filter((lang) => lang !== preferred)];
+  }, [servers, content?.language]);
 
   const [activeLang, setActiveLang] = useState<string | null>(languages[0] ?? null);
   const [serverIdx, setServerIdx] = useState(0);
@@ -111,7 +117,7 @@ function Watch() {
   }, [languages, activeLang]);
 
   const langServers = useMemo(
-    () => servers.filter((s) => s.language === activeLang),
+    () => servers.filter((s) => normalizeLanguage(s.language) === activeLang),
     [servers, activeLang],
   );
   useEffect(() => {
@@ -142,6 +148,9 @@ function Watch() {
   // Cycle to the next available server across languages.
   const tryAnother = () => {
     setPlaybackError(null);
+    setFinalPlaybackFailure(false);
+    sourceReadyRef.current = false;
+    setSourceReady(false);
     recordAppMetric({
       data: {
         source: "stream",
