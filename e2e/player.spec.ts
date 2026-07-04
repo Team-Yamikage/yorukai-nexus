@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * Player E2E: iframe loading, server cycling, and the NO SERVERS fallback.
+ * Player E2E: iframe loading, source cycling, and the final stream error.
  * Supabase REST and the guarded server functions are mocked so the player
  * renders deterministically without real episodes or live embed hosts.
  */
@@ -80,10 +80,11 @@ test("server cycling switches to another source", async ({ page }) => {
   await expect(frame).toHaveAttribute("src", "https://example.com/embed/s2");
 });
 
-test("shows NO SERVERS fallback when no playable servers exist", async ({ page }) => {
+test("shows a final stream error only after no playable sources exist", async ({ page }) => {
   await mockSupabase(page);
   await mockProbe(page);
   await mockServers(page, []);
   await page.goto(`/watch/${EPISODE_ID}`);
-  await expect(page.getByText("NO SERVERS")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("LOADING STREAM")).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByText("STREAM SIGNAL LOST")).toBeVisible({ timeout: 15_000 });
 });
