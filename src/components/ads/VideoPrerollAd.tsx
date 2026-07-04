@@ -11,7 +11,7 @@ type Props = {
 };
 
 export function VideoPrerollAd({ onComplete }: Props) {
-  const { loading, isPremium } = useAuth();
+  const { loading, isPremium, user, profile } = useAuth();
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [canSkip, setCanSkip] = useState(false);
   const [fallback, setFallback] = useState(false);
@@ -29,6 +29,7 @@ export function VideoPrerollAd({ onComplete }: Props) {
       complete();
       return;
     }
+    if (user && !profile) return;
 
     const skipTimer = window.setTimeout(() => setCanSkip(true), 4500);
     const fallbackTimer = window.setTimeout(() => setFallback(true), 3500);
@@ -58,9 +59,9 @@ export function VideoPrerollAd({ onComplete }: Props) {
       window.clearTimeout(maxTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, isPremium]);
+  }, [loading, isPremium, user, profile]);
 
-  if (loading || isPremium) return null;
+  if (loading || isPremium || (user && !profile)) return null;
 
   return (
     <div className="absolute inset-0 z-40 grid place-items-center bg-black text-white">

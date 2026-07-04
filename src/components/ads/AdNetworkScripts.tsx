@@ -22,7 +22,7 @@ const AD_SCRIPTS: AdScriptConfig[] = [
 ];
 
 export function AdNetworkScripts() {
-  const { loading, isPremium } = useAuth();
+  const { loading, isPremium, user, profile } = useAuth();
 
   useEffect(() => {
     const removeAds = () => {
@@ -33,11 +33,11 @@ export function AdNetworkScripts() {
       });
     };
 
-    if (isPremium) {
+    if (isPremium || (user && !profile)) {
       removeAds();
       return;
     }
-    if (loading || isPremium) return;
+    if (loading || isPremium || (user && !profile)) return;
     if (document.querySelector(`[data-ad-pack="${AD_SCRIPT_ID}"]`)) return;
 
     // Run after hydration to avoid third-party scripts mutating the SSR tree and
@@ -57,7 +57,7 @@ export function AdNetworkScripts() {
     }, 1200);
 
     return () => window.clearTimeout(t);
-  }, [loading, isPremium]);
+  }, [loading, isPremium, user, profile]);
 
   return null;
 }

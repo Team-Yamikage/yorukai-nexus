@@ -1,8 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
-import { ChevronLeft, ChevronRight, SkipForward, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, SkipForward, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, Loader2, AlertTriangle } from "lucide-react";
 import { episodeQuery, episodeServersQuery, FALLBACK_POSTER, type ServerRow } from "@/lib/api/content";
 import {
   playableServers,
@@ -11,6 +11,8 @@ import {
   isEmbedUrl,
   nextServer,
   classifyPlaybackError,
+  normalizeLanguage,
+  prioritizeServersForLanguage,
   type PlaybackErrorReason,
 } from "@/lib/api/servers";
 import { probeServers } from "@/lib/api/server-health.functions";
@@ -65,8 +67,8 @@ function Watch() {
   // known-dead/ad-redirect host (e.g. short.icu), and not flagged unreachable
   // by the health probe.
   const servers = useMemo(
-    () => playableServers(rawServers, health),
-    [rawServers, health],
+    () => prioritizeServersForLanguage(playableServers(rawServers, health), content?.language),
+    [rawServers, health, content?.language],
   );
 
   // Probe the raw (pre-filter) candidates server-side so we can auto-disable
@@ -121,6 +123,21 @@ function Watch() {
 
   // User-facing playback error (sandbox / CORS / expired / dns / network).
   const [playbackError, setPlaybackError] = useState<{ reason: PlaybackErrorReason; label: string } | null>(null);
+  const [finalPlaybackFailure, setFinalPlaybackFailure] = useState(false);
+  const sourceReadyRef = useRef(false);
+  const [, setSourceReady] = useState(false);
+
+  const markSourceReady = useCallback(() => {
+    sourceReadyRef.current = true;
+    setSourceReady(true);
+    setPlaybackError(null);
+  }, []);
+
+  const failActiveSource = useCallback((info: { reason: PlaybackErrorReason; label: string }) => {
+    sourceReadyRef.current = false;
+    setSourceReady(false);
+    setPlaybackError(info);
+  }, []);
 
   // Cycle to the next available server across languages.
   const tryAnother = () => {
@@ -143,6 +160,8 @@ function Watch() {
   const autoTries = useRef(0);
   useEffect(() => {
     autoTries.current = 0;
+    setFinalPlaybackFailure(false);
+    setPlaybackError(null);
   }, [id, servers.length]);
 
 
@@ -159,6 +178,7 @@ function Watch() {
   useEffect(() => {
     setPrerollDone(false);
     setPlaybackError(null);
+    setFinalPlaybackFailure(false);
   }, [id]);
 
   const showPreroll = !authLoading && !isPremium && !prerollDone;
@@ -189,19 +209,59 @@ function Watch() {
     const v = videoRef.current;
     if (!canLoadPlayer || !v || !activeServer?.embed_url) return;
     const url = activeServer.embed_url;
+    setFinalPlaybackFailure(false);
+    sourceReadyRef.current = false;
+    setSourceReady(false);
     if (!/\.m3u8(\?|$)/i.test(url)) {
       v.src = url;
+      v.load();
       return;
     }
     if (Hls.isSupported()) {
       const hls = new Hls({ enableWorker: true });
       hls.loadSource(url);
       hls.attachMedia(v);
+      hls.on(Hls.Events.MANIFEST_PARSED, markSourceReady);
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          hls.startLoad();
+          return;
+        }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
+          return;
+        }
+        failActiveSource(classifyPlaybackError({ url, message: data.details }));
+      });
       return () => hls.destroy();
     } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
       v.src = url;
+      v.load();
     }
-  }, [activeServer, canLoadPlayer]);
+  }, [activeServer, canLoadPlayer, failActiveSource, markSourceReady]);
+
+  useEffect(() => {
+    if (!canLoadPlayer || !activeServer?.embed_url || finalPlaybackFailure) return;
+    sourceReadyRef.current = false;
+    setSourceReady(false);
+    const timeoutMs = isEmbed ? 18_000 : 12_000;
+    const t = window.setTimeout(() => {
+      if (sourceReadyRef.current) return;
+      failActiveSource(classifyPlaybackError({ url: activeServer.embed_url, message: "timeout" }));
+    }, timeoutMs);
+    return () => window.clearTimeout(t);
+  }, [activeServer?.id, activeServer?.embed_url, canLoadPlayer, failActiveSource, finalPlaybackFailure, isEmbed]);
+
+  useEffect(() => {
+    if (blocked === "banned" || blocked === "rate_limited") {
+      setFinalPlaybackFailure(true);
+      return;
+    }
+    if (!serverData || serversLoading || serversFetching || servers.length > 0) return;
+    const t = window.setTimeout(() => setFinalPlaybackFailure(true), 9000);
+    return () => window.clearTimeout(t);
+  }, [blocked, serverData, serversLoading, serversFetching, servers.length]);
 
   useEffect(() => {
     if (serverData && rawServers.length === 0) {
@@ -215,14 +275,22 @@ function Watch() {
   // users never have to pick a server manually. Stops after one full cycle.
   useEffect(() => {
     if (!playbackError) return;
-    if (servers.length <= 1) return;
-    if (autoTries.current >= servers.length - 1) return;
+    if (servers.length <= 1) {
+      const t = setTimeout(() => setFinalPlaybackFailure(true), 1800);
+      return () => clearTimeout(t);
+    }
+    if (autoTries.current >= servers.length - 1) {
+      const t = setTimeout(() => setFinalPlaybackFailure(true), 1800);
+      return () => clearTimeout(t);
+    }
     autoTries.current += 1;
     const t = setTimeout(() => {
       const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
       setActiveLang(lang);
       setServerIdx(index);
       setPlaybackError(null);
+      sourceReadyRef.current = false;
+      setSourceReady(false);
     }, 1200);
     return () => clearTimeout(t);
   }, [playbackError, servers, activeLang, serverIdx]);
@@ -236,6 +304,17 @@ function Watch() {
   const togglePlay = () => {
     const v = videoRef.current; if (!v) return;
     if (v.paused) { v.play(); setPlaying(true); } else { v.pause(); setPlaying(false); }
+  };
+
+  const displayLanguage = normalizeLanguage(activeServer?.language) ?? normalizeLanguage(content?.language) ?? "Auto";
+
+  const retryAllSources = () => {
+    autoTries.current = 0;
+    setFinalPlaybackFailure(false);
+    setPlaybackError(null);
+    setServerIdx(0);
+    setActiveLang(languages[0] ?? null);
+    qc.invalidateQueries({ queryKey: ["episode-servers", id] });
   };
 
   return (
