@@ -39,6 +39,7 @@ export function AdBanner({
         width={width}
         height={height}
         scrolling="no"
+        sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
         style={{ border: "none", width, height, maxWidth: "100%" }}
       />
     </div>
