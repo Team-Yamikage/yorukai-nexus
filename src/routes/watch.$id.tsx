@@ -63,15 +63,14 @@ function Watch() {
   // Server-side reachability results: serverId -> reachable.
   const [health, setHealth] = useState<Record<string, boolean>>({});
 
-  // Only show sources that could plausibly play: http(s), not an image, not a
-  // known-dead/ad-redirect host (e.g. short.icu), and not flagged unreachable
-  // by the health probe.
+  // Only try sources that could plausibly play: http(s), not images, and not
+  // known-dead/ad-redirect hosts. Probe failures only deprioritise sources.
   const servers = useMemo(
     () => prioritizeServersForLanguage(playableServers(rawServers, health), content?.language),
     [rawServers, health, content?.language],
   );
 
-  // Probe the raw (pre-filter) candidates server-side so we can auto-disable
+  // Probe the raw (pre-filter) candidates server-side so we can deprioritise
   // dead sources. The browser can't HEAD cross-origin embeds (CORS), so this
   // runs on the server.
   useEffect(() => {
