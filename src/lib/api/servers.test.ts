@@ -58,12 +58,12 @@ describe("playableServers", () => {
     ];
     expect(playableServers(list).map((s) => s.id)).toEqual(["d"]);
   });
-  it("drops servers marked unreachable by health probe", () => {
+  it("keeps probe-failed servers but tries reachable ones first", () => {
     const list = [
       srv({ id: "d", embed_url: "https://good.example/embed/1" }),
       srv({ id: "e", embed_url: "https://good.example/embed/2" }),
     ];
-    expect(playableServers(list, { d: false, e: true }).map((s) => s.id)).toEqual(["e"]);
+    expect(playableServers(list, { d: false, e: true }).map((s) => s.id)).toEqual(["e", "d"]);
   });
 });
 

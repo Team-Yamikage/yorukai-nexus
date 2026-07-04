@@ -52,20 +52,29 @@ export function isEmbedUrl(url: string | null | undefined): boolean {
 /**
  * Filter a raw server list down to ones that could plausibly play:
  * must have an http(s) embed_url, must not be a dead host, must not be an image.
- * Optionally drops servers known-unreachable from a health probe.
+ * Health probe results only change priority. They must not remove a source:
+ * some embed hosts block server-side probes but still work in the browser, and
+ * the player should try every plausible source before giving up.
  */
 export function playableServers(
   servers: ServerRow[],
   health?: Record<string, boolean>,
 ): ServerRow[] {
-  return servers.filter((s) => {
-    const url = s.embed_url;
-    if (!url || !/^https?:\/\//i.test(url)) return false;
-    if (/\.(webp|jpg|jpeg|png|gif|svg)(\?|$)/i.test(url)) return false;
-    if (isDeadHost(url)) return false;
-    if (health && health[s.id] === false) return false;
-    return true;
-  });
+  return servers
+    .filter((s) => {
+      const url = s.embed_url;
+      if (!url || !/^https?:\/\//i.test(url)) return false;
+      if (/\.(webp|jpg|jpeg|png|gif|svg)(\?|$)/i.test(url)) return false;
+      if (isDeadHost(url)) return false;
+      return true;
+    })
+    .sort((a, b) => healthRank(health?.[a.id]) - healthRank(health?.[b.id]));
+}
+
+function healthRank(value: boolean | undefined): number {
+  if (value === true) return 0;
+  if (value === undefined) return 1;
+  return 2;
 }
 
 const LANG_ORDER = [
@@ -83,12 +92,50 @@ const LANG_ORDER = [
 /** Distinct languages present in a server list, sorted by preferred order. */
 export function languagesOf(servers: ServerRow[]): string[] {
   const set = Array.from(
-    new Set(servers.map((s) => s.language).filter(Boolean)),
+    new Set(servers.map((s) => normalizeLanguage(s.language)).filter(Boolean)),
   ) as string[];
   return set.sort(
     (a, b) =>
       (LANG_ORDER.indexOf(a) + 1 || 99) - (LANG_ORDER.indexOf(b) + 1 || 99),
   );
+}
+
+export function normalizeLanguage(value: string | null | undefined): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (lower.includes("japanese") || lower === "jp" || lower === "ja") return "Japanese";
+  if (lower.includes("english") || lower === "en") return "English";
+  if (lower.includes("hindi") || lower === "hi") return "Hindi";
+  if (lower.includes("tamil") || lower === "ta") return "Tamil";
+  if (lower.includes("telugu") || lower === "te") return "Telugu";
+  if (lower.includes("malayalam") || lower === "ml") return "Malayalam";
+  if (lower.includes("kannada") || lower === "kn") return "Kannada";
+  if (lower.includes("bengali") || lower === "bn") return "Bengali";
+  if (lower.includes("multi") || lower.includes("dual")) return "Multi";
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+export function prioritizeServersForLanguage(
+  servers: ServerRow[],
+  preferredLanguage?: string | null,
+): ServerRow[] {
+  const preferred = normalizeLanguage(preferredLanguage);
+  if (!preferred) return servers;
+  return [...servers].sort((a, b) => {
+    const ar = languageMatchRank(a.language, preferred);
+    const br = languageMatchRank(b.language, preferred);
+    if (ar !== br) return ar - br;
+    return 0;
+  });
+}
+
+function languageMatchRank(language: string | null | undefined, preferred: string): number {
+  const normalized = normalizeLanguage(language);
+  if (normalized === preferred) return 0;
+  if (normalized === "Multi") return 1;
+  if (normalized === "English") return preferred === "English" ? 0 : 2;
+  return 3;
 }
 
 export type CycleState = { lang: string | null; index: number };
@@ -105,7 +152,7 @@ export function nextServer(
   const langs = languagesOf(servers);
   if (langs.length === 0) return state;
   const lang = state.lang ?? langs[0];
-  const inLang = servers.filter((s) => s.language === lang);
+  const inLang = servers.filter((s) => normalizeLanguage(s.language) === lang);
   if (state.index < inLang.length - 1) {
     return { lang, index: state.index + 1 };
   }

@@ -1,8 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
-import { ChevronLeft, ChevronRight, SkipForward, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, SkipForward, ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize, Loader2, AlertTriangle } from "lucide-react";
 import { episodeQuery, episodeServersQuery, FALLBACK_POSTER, type ServerRow } from "@/lib/api/content";
 import {
   playableServers,
@@ -11,6 +11,8 @@ import {
   isEmbedUrl,
   nextServer,
   classifyPlaybackError,
+  normalizeLanguage,
+  prioritizeServersForLanguage,
   type PlaybackErrorReason,
 } from "@/lib/api/servers";
 import { probeServers } from "@/lib/api/server-health.functions";
@@ -61,15 +63,14 @@ function Watch() {
   // Server-side reachability results: serverId -> reachable.
   const [health, setHealth] = useState<Record<string, boolean>>({});
 
-  // Only show sources that could plausibly play: http(s), not an image, not a
-  // known-dead/ad-redirect host (e.g. short.icu), and not flagged unreachable
-  // by the health probe.
+  // Only try sources that could plausibly play: http(s), not images, and not
+  // known-dead/ad-redirect hosts. Probe failures only deprioritise sources.
   const servers = useMemo(
-    () => playableServers(rawServers, health),
-    [rawServers, health],
+    () => prioritizeServersForLanguage(playableServers(rawServers, health), content?.language),
+    [rawServers, health, content?.language],
   );
 
-  // Probe the raw (pre-filter) candidates server-side so we can auto-disable
+  // Probe the raw (pre-filter) candidates server-side so we can deprioritise
   // dead sources. The browser can't HEAD cross-origin embeds (CORS), so this
   // runs on the server.
   useEffect(() => {
@@ -90,8 +91,14 @@ function Watch() {
   }, [rawServers]);
 
 
-  // Group available servers by spoken language (audio track).
-  const languages = useMemo(() => languagesOf(servers), [servers]);
+  // Group available sources by spoken language (audio track), with the
+  // episode/content language first so the UI reflects what is playing.
+  const languages = useMemo(() => {
+    const ordered = languagesOf(servers);
+    const preferred = normalizeLanguage(content?.language);
+    if (!preferred || !ordered.includes(preferred)) return ordered;
+    return [preferred, ...ordered.filter((lang) => lang !== preferred)];
+  }, [servers, content?.language]);
 
   const [activeLang, setActiveLang] = useState<string | null>(languages[0] ?? null);
   const [serverIdx, setServerIdx] = useState(0);
@@ -109,7 +116,7 @@ function Watch() {
   }, [languages, activeLang]);
 
   const langServers = useMemo(
-    () => servers.filter((s) => s.language === activeLang),
+    () => servers.filter((s) => normalizeLanguage(s.language) === activeLang),
     [servers, activeLang],
   );
   useEffect(() => {
@@ -121,10 +128,28 @@ function Watch() {
 
   // User-facing playback error (sandbox / CORS / expired / dns / network).
   const [playbackError, setPlaybackError] = useState<{ reason: PlaybackErrorReason; label: string } | null>(null);
+  const [finalPlaybackFailure, setFinalPlaybackFailure] = useState(false);
+  const sourceReadyRef = useRef(false);
+  const [, setSourceReady] = useState(false);
+
+  const markSourceReady = useCallback(() => {
+    sourceReadyRef.current = true;
+    setSourceReady(true);
+    setPlaybackError(null);
+  }, []);
+
+  const failActiveSource = useCallback((info: { reason: PlaybackErrorReason; label: string }) => {
+    sourceReadyRef.current = false;
+    setSourceReady(false);
+    setPlaybackError(info);
+  }, []);
 
   // Cycle to the next available server across languages.
   const tryAnother = () => {
     setPlaybackError(null);
+    setFinalPlaybackFailure(false);
+    sourceReadyRef.current = false;
+    setSourceReady(false);
     recordAppMetric({
       data: {
         source: "stream",
@@ -135,6 +160,7 @@ function Watch() {
     const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
     setActiveLang(lang);
     setServerIdx(index);
+    autoTries.current += 1;
   };
 
   // Automatic background fallback: when a source fails, silently advance to the
@@ -143,6 +169,8 @@ function Watch() {
   const autoTries = useRef(0);
   useEffect(() => {
     autoTries.current = 0;
+    setFinalPlaybackFailure(false);
+    setPlaybackError(null);
   }, [id, servers.length]);
 
 
@@ -159,6 +187,7 @@ function Watch() {
   useEffect(() => {
     setPrerollDone(false);
     setPlaybackError(null);
+    setFinalPlaybackFailure(false);
   }, [id]);
 
   const showPreroll = !authLoading && !isPremium && !prerollDone;
@@ -189,19 +218,59 @@ function Watch() {
     const v = videoRef.current;
     if (!canLoadPlayer || !v || !activeServer?.embed_url) return;
     const url = activeServer.embed_url;
+    setFinalPlaybackFailure(false);
+    sourceReadyRef.current = false;
+    setSourceReady(false);
     if (!/\.m3u8(\?|$)/i.test(url)) {
       v.src = url;
+      v.load();
       return;
     }
     if (Hls.isSupported()) {
       const hls = new Hls({ enableWorker: true });
       hls.loadSource(url);
       hls.attachMedia(v);
+      hls.on(Hls.Events.MANIFEST_PARSED, markSourceReady);
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          hls.startLoad();
+          return;
+        }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
+          return;
+        }
+        failActiveSource(classifyPlaybackError({ url, message: data.details }));
+      });
       return () => hls.destroy();
     } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
       v.src = url;
+      v.load();
     }
-  }, [activeServer, canLoadPlayer]);
+  }, [activeServer, canLoadPlayer, failActiveSource, markSourceReady]);
+
+  useEffect(() => {
+    if (!canLoadPlayer || !activeServer?.embed_url || finalPlaybackFailure) return;
+    sourceReadyRef.current = false;
+    setSourceReady(false);
+    const timeoutMs = isEmbed ? 18_000 : 12_000;
+    const t = window.setTimeout(() => {
+      if (sourceReadyRef.current) return;
+      failActiveSource(classifyPlaybackError({ url: activeServer.embed_url, message: "timeout" }));
+    }, timeoutMs);
+    return () => window.clearTimeout(t);
+  }, [activeServer?.id, activeServer?.embed_url, canLoadPlayer, failActiveSource, finalPlaybackFailure, isEmbed]);
+
+  useEffect(() => {
+    if (blocked === "banned" || blocked === "rate_limited") {
+      setFinalPlaybackFailure(true);
+      return;
+    }
+    if (!serverData || serversLoading || serversFetching || servers.length > 0) return;
+    const t = window.setTimeout(() => setFinalPlaybackFailure(true), 9000);
+    return () => window.clearTimeout(t);
+  }, [blocked, serverData, serversLoading, serversFetching, servers.length]);
 
   useEffect(() => {
     if (serverData && rawServers.length === 0) {
@@ -215,14 +284,22 @@ function Watch() {
   // users never have to pick a server manually. Stops after one full cycle.
   useEffect(() => {
     if (!playbackError) return;
-    if (servers.length <= 1) return;
-    if (autoTries.current >= servers.length - 1) return;
+    if (servers.length <= 1) {
+      const t = setTimeout(() => setFinalPlaybackFailure(true), 1800);
+      return () => clearTimeout(t);
+    }
+    if (autoTries.current >= servers.length - 1) {
+      const t = setTimeout(() => setFinalPlaybackFailure(true), 1800);
+      return () => clearTimeout(t);
+    }
     autoTries.current += 1;
     const t = setTimeout(() => {
       const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
       setActiveLang(lang);
       setServerIdx(index);
       setPlaybackError(null);
+      sourceReadyRef.current = false;
+      setSourceReady(false);
     }, 1200);
     return () => clearTimeout(t);
   }, [playbackError, servers, activeLang, serverIdx]);
@@ -236,6 +313,17 @@ function Watch() {
   const togglePlay = () => {
     const v = videoRef.current; if (!v) return;
     if (v.paused) { v.play(); setPlaying(true); } else { v.pause(); setPlaying(false); }
+  };
+
+  const displayLanguage = normalizeLanguage(activeServer?.language) ?? normalizeLanguage(content?.language) ?? "Auto";
+
+  const retryAllSources = () => {
+    autoTries.current = 0;
+    setFinalPlaybackFailure(false);
+    setPlaybackError(null);
+    setServerIdx(0);
+    setActiveLang(languages[0] ?? null);
+    qc.invalidateQueries({ queryKey: ["episode-servers", id] });
   };
 
   return (
@@ -264,19 +352,40 @@ function Watch() {
           {/* Player */}
           <div className="relative aspect-video bg-black">
             <Watermark position="top-right" />
-            {!activeServer || !canLoadPlayer ? (
+            {finalPlaybackFailure ? (
+              <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_center,rgba(255,72,214,0.16),transparent_50%),#050307] p-8 text-center">
+                <div className="max-w-lg">
+                  <AlertTriangle className="mx-auto mb-4 h-9 w-9 text-senpai-amber" />
+                  <div className="senpai-mega text-4xl senpai-grad-text-fire">
+                    {blocked === "banned" ? "ACCESS BLOCKED" : blocked === "rate_limited" ? "SLOW DOWN" : "STREAM SIGNAL LOST"}
+                  </div>
+                  <p className="mt-3 text-sm text-senpai-text-dim">
+                    {blocked === "banned"
+                      ? "This device has been blocked from streaming."
+                      : blocked === "rate_limited"
+                      ? "Too many stream requests — wait a moment, then try again."
+                      : playbackError?.label ?? "Every available source was tested and none responded."}
+                  </p>
+                  {blocked !== "banned" && blocked !== "rate_limited" && (
+                    <button
+                      type="button"
+                      onClick={retryAllSources}
+                      className="mt-6 rounded-full bg-gradient-to-r from-senpai-violet to-senpai-fuchsia px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-white"
+                    >
+                      Retry playback
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : !activeServer || !canLoadPlayer ? (
               <div className="grid h-full place-items-center text-center p-8">
                 <div>
                   <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-senpai-fuchsia" />
                   <div className="senpai-mega text-3xl senpai-grad-text-fire">
-                    {blocked === "banned" ? "ACCESS BLOCKED" : blocked === "rate_limited" ? "SLOW DOWN" : "LOADING STREAM"}
+                    LOADING STREAM
                   </div>
                   <p className="mt-2 text-sm text-senpai-text-dim">
-                    {blocked === "banned"
-                      ? "This device has been blocked from streaming."
-                      : blocked === "rate_limited"
-                      ? "Too many requests — please wait a moment and refresh."
-                      : authLoading
+                    {authLoading
                       ? "Checking your viewing status."
                       : showPreroll
                       ? "Preparing a short sponsor message before playback."
@@ -296,18 +405,19 @@ function Watch() {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen
                 referrerPolicy="no-referrer"
-                onLoad={() =>
+                onLoad={() => {
+                  markSourceReady();
                   console.info("[watch] embed loaded", {
                     server: activeServer.server_name,
                     quality: activeServer.quality,
                     language: activeServer.language,
                     url: activeServer.embed_url,
-                  })
-                }
+                  });
+                }}
                 onError={() => {
                   const info = classifyPlaybackError({ url: activeServer.embed_url });
                   console.error("[watch] embed error", { ...info, url: activeServer.embed_url });
-                  setPlaybackError(info);
+                  failActiveSource(info);
                 }}
                 // NOTE: no `sandbox` attribute. Many free embed players detect a
                 // sandboxed iframe and refuse to play ("ads are not being
@@ -320,6 +430,7 @@ function Watch() {
                   ref={videoRef}
                   className="absolute inset-0 h-full w-full"
                   onPlay={() => setPlaying(true)}
+                  onCanPlay={markSourceReady}
                   onPause={() => setPlaying(false)}
                   onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
                   onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
@@ -335,7 +446,7 @@ function Watch() {
                       ...info,
                       url: activeServer.embed_url,
                     });
-                    setPlaybackError(info);
+                    failActiveSource(info);
                   }}
                   poster={ep.thumbnail_url || content?.banner_url || undefined}
                   controls={false}
@@ -379,39 +490,14 @@ function Watch() {
               </button>
             )}
 
-            {/* Playback error reason overlay */}
-            {playbackError && activeServer && (
-              <div className="absolute inset-x-0 bottom-0 z-30 flex flex-col items-center gap-3 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-6 text-center">
-                <p className="max-w-md text-sm text-senpai-text-dim">
-                  <span className="font-semibold text-white">Still loading.</span>{" "}
-                  {playbackError.label}
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  {servers.length > 1 && (
-                    <button
-                      onClick={tryAnother}
-                      className="rounded-full bg-gradient-to-r from-senpai-violet to-senpai-fuchsia px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white"
-                    >
-                      Try another source
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setPlaybackError(null)}
-                    className="senpai-glass rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest text-senpai-text-dim hover:text-white"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            )}
             {showPreroll && <VideoPrerollAd onComplete={() => setPrerollDone(true)} />}
           </div>
 
 
-          {/* Source metadata can be wrong, so language/server labels stay hidden. */}
+          {/* Source names stay hidden; language reflects the active audio track. */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-senpai-border p-4 sm:p-6">
             <div className="text-xs uppercase tracking-[0.25em] text-senpai-text-muted">
-              {activeServer ? "Auto-selected playback" : "Preparing playback"}
+              {activeServer ? `Playback · ${displayLanguage} audio` : "Preparing playback"}
             </div>
             {servers.length > 1 && (
               <button

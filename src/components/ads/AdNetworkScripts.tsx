@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 
 const AD_SCRIPT_ID = "yk-non-premium-ad-network";
+const AD_HOST_RE = /(welcomingexpulsion\.com|massivesalad\.com|quge5\.com|butterygrandmother\.com)/i;
 
 type AdScriptConfig = {
   src: string;
@@ -24,8 +25,16 @@ export function AdNetworkScripts() {
   const { loading, isPremium } = useAuth();
 
   useEffect(() => {
-    if (isPremium) {
+    const removeAds = () => {
       document.querySelectorAll(`[data-ad-pack="${AD_SCRIPT_ID}"]`).forEach((node) => node.remove());
+      document.querySelectorAll("iframe,script").forEach((node) => {
+        const src = node.getAttribute("src") ?? "";
+        if (AD_HOST_RE.test(src)) node.remove();
+      });
+    };
+
+    if (isPremium) {
+      removeAds();
       return;
     }
     if (loading || isPremium) return;

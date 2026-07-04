@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, VolumeX } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { AdBanner } from "@/components/AdBanner";
 
 export const VAST_PREROLL_URL =
   "https://butterygrandmother.com/dRmJFMzVd.GrN/vAZrG/Uu/be/md9NuxZsUClfkbPqTicWxAOwDrgd2jMPzgMAtgNAz/EC4ZOZDpYRzJN/yrZdsua-W/1ApldFD/0_xC";
@@ -28,9 +29,9 @@ export function VideoPrerollAd({ onComplete }: Props) {
       complete();
       return;
     }
-
-    const skipTimer = window.setTimeout(() => setCanSkip(true), 5000);
-    const maxTimer = window.setTimeout(complete, 18000);
+    const skipTimer = window.setTimeout(() => setCanSkip(true), 4500);
+    const fallbackTimer = window.setTimeout(() => setFallback(true), 3500);
+    const maxTimer = window.setTimeout(complete, 14000);
     let cancelled = false;
 
     fetch(VAST_PREROLL_URL, { credentials: "omit", mode: "cors" })
@@ -52,6 +53,7 @@ export function VideoPrerollAd({ onComplete }: Props) {
     return () => {
       cancelled = true;
       window.clearTimeout(skipTimer);
+      window.clearTimeout(fallbackTimer);
       window.clearTimeout(maxTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,7 +75,10 @@ export function VideoPrerollAd({ onComplete }: Props) {
           muted
           playsInline
           onEnded={complete}
-          onError={() => setFallback(true)}
+          onError={() => {
+            setMediaUrl(null);
+            setFallback(true);
+          }}
         />
       ) : (
         <div className="text-center">
@@ -81,6 +86,9 @@ export function VideoPrerollAd({ onComplete }: Props) {
             <>
               <div className="senpai-mega text-4xl senpai-grad-text-fire">AD BREAK</div>
               <p className="mt-2 text-sm text-senpai-text-dim">Your episode starts in a moment.</p>
+              <div className="mt-6">
+                <AdBanner adKey="921c3b2b7865019cf9b9ece13ab15bf4" width={468} height={60} />
+              </div>
             </>
           ) : (
             <>
