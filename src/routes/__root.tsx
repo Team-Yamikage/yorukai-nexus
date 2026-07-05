@@ -10,7 +10,6 @@ import {
 
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth";
-import { AdNetworkScripts } from "@/components/ads/AdNetworkScripts";
 
 function NotFoundComponent() {
   return (
@@ -126,7 +125,6 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AdNetworkScripts />
         <Outlet />
       </AuthProvider>
     </QueryClientProvider>
