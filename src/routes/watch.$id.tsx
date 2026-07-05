@@ -162,16 +162,14 @@ function Watch() {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showIntroSkip, setShowIntroSkip] = useState(false);
-  const [prerollDone, setPrerollDone] = useState(false);
 
   useEffect(() => {
-    setPrerollDone(false);
     setPlaybackError(null);
     setFinalPlaybackFailure(false);
   }, [id]);
 
-  const showPreroll = !authLoading && !isPremium && !prerollDone;
-  const canLoadPlayer = !authLoading && (isPremium || prerollDone);
+  // No ad pre-roll: playback loads as soon as auth status is known.
+  const canLoadPlayer = !authLoading;
 
   const idxInSiblings = data.siblings.findIndex((s) => s.id === ep.id);
   const prevEp = data.siblings[idxInSiblings - 1];
