@@ -241,14 +241,13 @@ function Watch() {
   }, [activeServer?.id, activeServer?.embed_url, canLoadPlayer, failActiveSource, finalPlaybackFailure, isEmbed]);
 
   useEffect(() => {
+    // Only a hard block (banned / rate-limited) is a terminal state. A missing
+    // or slow source never surfaces an error — the player keeps waiting and
+    // cycling sources until one plays.
     if (blocked === "banned" || blocked === "rate_limited") {
       setFinalPlaybackFailure(true);
-      return;
     }
-    if (!serverData || serversLoading || serversFetching || servers.length > 0) return;
-    const t = window.setTimeout(() => setFinalPlaybackFailure(true), 9000);
-    return () => window.clearTimeout(t);
-  }, [blocked, serverData, serversLoading, serversFetching, servers.length]);
+  }, [blocked]);
 
   useEffect(() => {
     if (serverData && rawServers.length === 0) {
@@ -258,19 +257,38 @@ function Watch() {
     }
   }, [serverData, rawServers.length, blocked, id]);
 
-  // Auto-advance to the next server in the background when playback fails, so
-  // users never have to pick a server manually. Stops after one full cycle.
+  // Auto-advance to the next source in the background when playback fails, so
+  // users never have to pick a server manually. This NEVER gives up: after a
+  // full cycle it loops back to the first source and keeps trying, waiting for
+  // any server/episode link to come alive. Every retry + fallback decision is
+  // logged as telemetry so we can confirm episodes never get permanently stuck.
   useEffect(() => {
     if (!playbackError) return;
-    if (servers.length <= 1) {
-      const t = setTimeout(() => setFinalPlaybackFailure(true), 1800);
-      return () => clearTimeout(t);
-    }
-    if (autoTries.current >= servers.length - 1) {
-      const t = setTimeout(() => setFinalPlaybackFailure(true), 1800);
-      return () => clearTimeout(t);
-    }
+    if (servers.length === 0) return;
+
     autoTries.current += 1;
+    const cycled = autoTries.current % Math.max(servers.length, 1) === 0;
+    recordAppMetric({
+      data: {
+        source: "stream",
+        name: "playback_fallback",
+        labels: {
+          episodeId: id,
+          reason: playbackError.reason,
+          fromSource: activeServer?.id ?? null,
+          attempt: autoTries.current,
+          sourceCount: servers.length,
+          cycledAll: cycled,
+        },
+      },
+    }).catch(() => {});
+    console.info("[watch] playback_fallback", {
+      episodeId: id,
+      reason: playbackError.reason,
+      attempt: autoTries.current,
+      cycledAll: cycled,
+    });
+
     const t = setTimeout(() => {
       const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
       setActiveLang(lang);
@@ -280,7 +298,8 @@ function Watch() {
       setSourceReady(false);
     }, 1200);
     return () => clearTimeout(t);
-  }, [playbackError, servers, activeLang, serverIdx]);
+  }, [playbackError, servers, activeLang, serverIdx, id, activeServer?.id]);
+
 
 
   // Show intro skip between 5-90s
