@@ -14,7 +14,7 @@ export const Route = createFileRoute("/search")({
       { property: "og:title", content: "Search — YORUKAI.TV" },
       { property: "og:description", content: "Find anime series and movies on YORUKAI.TV." },
     ],
-    links: [{ rel: "canonical", href: "https://anisti.vercel.app/search" }],
+    links: [{ rel: "canonical", href: "https://yorukai-tv-trms.vercel.app/search" }],
   }),
   component: () => (
     <AppShell>

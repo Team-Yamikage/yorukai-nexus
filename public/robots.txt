@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://anisti.vercel.app/sitemap.xml
+Sitemap: https://yorukai-tv-trms.vercel.app/sitemap.xml
