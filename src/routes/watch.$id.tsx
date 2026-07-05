@@ -15,15 +15,12 @@ import {
   prioritizeServersForLanguage,
   type PlaybackErrorReason,
 } from "@/lib/api/servers";
-import { probeServers } from "@/lib/api/server-health.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/lib/device";
 import { useAuth } from "@/lib/auth";
 import { ShareButton } from "@/components/ShareButton";
 import { recordAppMetric } from "@/lib/api/metrics.functions";
 import { Watermark } from "@/components/Watermark";
-import { AdBanner } from "@/components/AdBanner";
-import { VideoPrerollAd } from "@/components/ads/VideoPrerollAd";
 
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — YORUKAI.TV" }] }),
