@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as MangaRouteImport } from './routes/manga'
 import { Route as LiveTvRouteImport } from './routes/live-tv'
 import { Route as LibraryRouteImport } from './routes/library'
@@ -28,6 +29,9 @@ import { Route as ReaderIdRouteImport } from './routes/reader.$id'
 import { Route as MangaIdRouteImport } from './routes/manga.$id'
 import { Route as LiveWatchIdRouteImport } from './routes/live-watch.$id'
 import { Route as DetailIdRouteImport } from './routes/detail.$id'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -47,6 +51,11 @@ const SearchRoute = SearchRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MangaRoute = MangaRouteImport.update({
@@ -124,6 +133,24 @@ const DetailIdRoute = DetailIdRouteImport.update({
   path: '/detail/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotmcpChar93InvokeToolToolRoute =
+  Char91DotmcpChar93InvokeToolToolRouteImport.update({
+    id: '/.mcp/invoke-tool/$tool',
+    path: '/.mcp/invoke-tool/$tool',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -134,10 +161,13 @@ export interface FileRoutesByFullPath {
   '/library': typeof LibraryRoute
   '/live-tv': typeof LiveTvRoute
   '/manga': typeof MangaRouteWithChildren
+  '/mcp': typeof McpRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/detail/$id': typeof DetailIdRoute
   '/live-watch/$id': typeof LiveWatchIdRoute
   '/manga/$id': typeof MangaIdRoute
@@ -145,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/reports/episodes': typeof ReportsEpisodesRoute
   '/watch/$id': typeof WatchIdRoute
   '/manga/': typeof MangaIndexRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -154,10 +185,13 @@ export interface FileRoutesByTo {
   '/genres': typeof GenresRoute
   '/library': typeof LibraryRoute
   '/live-tv': typeof LiveTvRoute
+  '/mcp': typeof McpRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/detail/$id': typeof DetailIdRoute
   '/live-watch/$id': typeof LiveWatchIdRoute
   '/manga/$id': typeof MangaIdRoute
@@ -165,6 +199,7 @@ export interface FileRoutesByTo {
   '/reports/episodes': typeof ReportsEpisodesRoute
   '/watch/$id': typeof WatchIdRoute
   '/manga': typeof MangaIndexRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -176,10 +211,13 @@ export interface FileRoutesById {
   '/library': typeof LibraryRoute
   '/live-tv': typeof LiveTvRoute
   '/manga': typeof MangaRouteWithChildren
+  '/mcp': typeof McpRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/detail/$id': typeof DetailIdRoute
   '/live-watch/$id': typeof LiveWatchIdRoute
   '/manga/$id': typeof MangaIdRoute
@@ -187,6 +225,7 @@ export interface FileRoutesById {
   '/reports/episodes': typeof ReportsEpisodesRoute
   '/watch/$id': typeof WatchIdRoute
   '/manga/': typeof MangaIndexRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -199,10 +238,13 @@ export interface FileRouteTypes {
     | '/library'
     | '/live-tv'
     | '/manga'
+    | '/mcp'
     | '/profile'
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/detail/$id'
     | '/live-watch/$id'
     | '/manga/$id'
@@ -210,6 +252,7 @@ export interface FileRouteTypes {
     | '/reports/episodes'
     | '/watch/$id'
     | '/manga/'
+    | '/.mcp/invoke-tool/$tool'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -219,10 +262,13 @@ export interface FileRouteTypes {
     | '/genres'
     | '/library'
     | '/live-tv'
+    | '/mcp'
     | '/profile'
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/detail/$id'
     | '/live-watch/$id'
     | '/manga/$id'
@@ -230,6 +276,7 @@ export interface FileRouteTypes {
     | '/reports/episodes'
     | '/watch/$id'
     | '/manga'
+    | '/.mcp/invoke-tool/$tool'
   id:
     | '__root__'
     | '/'
@@ -240,10 +287,13 @@ export interface FileRouteTypes {
     | '/library'
     | '/live-tv'
     | '/manga'
+    | '/mcp'
     | '/profile'
     | '/search'
     | '/settings'
     | '/sitemap.xml'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/detail/$id'
     | '/live-watch/$id'
     | '/manga/$id'
@@ -251,6 +301,7 @@ export interface FileRouteTypes {
     | '/reports/episodes'
     | '/watch/$id'
     | '/manga/'
+    | '/.mcp/invoke-tool/$tool'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -262,15 +313,19 @@ export interface RootRouteChildren {
   LibraryRoute: typeof LibraryRoute
   LiveTvRoute: typeof LiveTvRoute
   MangaRoute: typeof MangaRouteWithChildren
+  McpRoute: typeof McpRoute
   ProfileRoute: typeof ProfileRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   DetailIdRoute: typeof DetailIdRoute
   LiveWatchIdRoute: typeof LiveWatchIdRoute
   ReaderIdRoute: typeof ReaderIdRoute
   ReportsEpisodesRoute: typeof ReportsEpisodesRoute
   WatchIdRoute: typeof WatchIdRoute
+  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -301,6 +356,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/manga': {
@@ -408,6 +470,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DetailIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/list-tools': {
+      id: '/.mcp/list-tools'
+      path: '/.mcp/list-tools'
+      fullPath: '/.mcp/list-tools'
+      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/invoke-tool/$tool': {
+      id: '/.mcp/invoke-tool/$tool'
+      path: '/.mcp/invoke-tool/$tool'
+      fullPath: '/.mcp/invoke-tool/$tool'
+      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -432,15 +515,20 @@ const rootRouteChildren: RootRouteChildren = {
   LibraryRoute: LibraryRoute,
   LiveTvRoute: LiveTvRoute,
   MangaRoute: MangaRouteWithChildren,
+  McpRoute: McpRoute,
   ProfileRoute: ProfileRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   DetailIdRoute: DetailIdRoute,
   LiveWatchIdRoute: LiveWatchIdRoute,
   ReaderIdRoute: ReaderIdRoute,
   ReportsEpisodesRoute: ReportsEpisodesRoute,
   WatchIdRoute: WatchIdRoute,
+  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
