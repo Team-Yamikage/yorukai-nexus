@@ -495,9 +495,6 @@ function Watch() {
 
         </div>
 
-        <div className="mt-6 flex justify-center">
-          <AdBanner adKey="921c3b2b7865019cf9b9ece13ab15bf4" width={468} height={60} />
-        </div>
 
         {/* Prev/Next + Episode strip */}
         <div className="mt-6 flex items-center justify-between gap-3">
