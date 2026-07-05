@@ -7,7 +7,6 @@ import { episodeQuery, episodeServersQuery, FALLBACK_POSTER, type ServerRow } fr
 import {
   playableServers,
   languagesOf,
-  isDeadHost,
   isEmbedUrl,
   nextServer,
   classifyPlaybackError,
@@ -15,15 +14,12 @@ import {
   prioritizeServersForLanguage,
   type PlaybackErrorReason,
 } from "@/lib/api/servers";
-import { probeServers } from "@/lib/api/server-health.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceId } from "@/lib/device";
 import { useAuth } from "@/lib/auth";
 import { ShareButton } from "@/components/ShareButton";
 import { recordAppMetric } from "@/lib/api/metrics.functions";
 import { Watermark } from "@/components/Watermark";
-import { AdBanner } from "@/components/AdBanner";
-import { VideoPrerollAd } from "@/components/ads/VideoPrerollAd";
 
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — YORUKAI.TV" }] }),
@@ -48,7 +44,7 @@ export const Route = createFileRoute("/watch/$id")({
 function Watch() {
   const { id } = Route.useParams();
   const { data } = useSuspenseQuery(episodeQuery(id));
-  const { user, loading: authLoading, isPremium } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const qc = useQueryClient();
   const ep = data.episode!;
   const content = data.content;
@@ -61,7 +57,7 @@ function Watch() {
   const blocked = serverData?.blocked;
 
   // Server-side reachability results: serverId -> reachable.
-  const [health, setHealth] = useState<Record<string, boolean>>({});
+  const [health] = useState<Record<string, boolean>>({});
 
   // Only try sources that could plausibly play: http(s), not images, and not
   // known-dead/ad-redirect hosts. Probe failures only deprioritise sources.
@@ -70,25 +66,8 @@ function Watch() {
     [rawServers, health, content?.language],
   );
 
-  // Probe the raw (pre-filter) candidates server-side so we can deprioritise
-  // dead sources. The browser can't HEAD cross-origin embeds (CORS), so this
-  // runs on the server.
-  useEffect(() => {
-    const candidates = rawServers
-      .filter((s) => !!s.embed_url && !isDeadHost(s.embed_url))
-      .slice(0, 20)
-      .map((s) => ({ id: s.id, url: s.embed_url! }));
-    if (candidates.length === 0) return;
-    let cancelled = false;
-    probeServers({ data: { servers: candidates } })
-      .then((res) => {
-        if (!cancelled) setHealth(res.health);
-      })
-      .catch((e) => console.warn("[watch] server health probe failed", e));
-    return () => {
-      cancelled = true;
-    };
-  }, [rawServers]);
+
+
 
 
   // Group available sources by spoken language (audio track), with the
@@ -182,16 +161,14 @@ function Watch() {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showIntroSkip, setShowIntroSkip] = useState(false);
-  const [prerollDone, setPrerollDone] = useState(false);
 
   useEffect(() => {
-    setPrerollDone(false);
     setPlaybackError(null);
     setFinalPlaybackFailure(false);
   }, [id]);
 
-  const showPreroll = !authLoading && !isPremium && !prerollDone;
-  const canLoadPlayer = !authLoading && (isPremium || prerollDone);
+  // No ad pre-roll: playback loads as soon as auth status is known.
+  const canLoadPlayer = !authLoading;
 
   const idxInSiblings = data.siblings.findIndex((s) => s.id === ep.id);
   const prevEp = data.siblings[idxInSiblings - 1];
@@ -263,14 +240,13 @@ function Watch() {
   }, [activeServer?.id, activeServer?.embed_url, canLoadPlayer, failActiveSource, finalPlaybackFailure, isEmbed]);
 
   useEffect(() => {
+    // Only a hard block (banned / rate-limited) is a terminal state. A missing
+    // or slow source never surfaces an error — the player keeps waiting and
+    // cycling sources until one plays.
     if (blocked === "banned" || blocked === "rate_limited") {
       setFinalPlaybackFailure(true);
-      return;
     }
-    if (!serverData || serversLoading || serversFetching || servers.length > 0) return;
-    const t = window.setTimeout(() => setFinalPlaybackFailure(true), 9000);
-    return () => window.clearTimeout(t);
-  }, [blocked, serverData, serversLoading, serversFetching, servers.length]);
+  }, [blocked]);
 
   useEffect(() => {
     if (serverData && rawServers.length === 0) {
@@ -280,19 +256,38 @@ function Watch() {
     }
   }, [serverData, rawServers.length, blocked, id]);
 
-  // Auto-advance to the next server in the background when playback fails, so
-  // users never have to pick a server manually. Stops after one full cycle.
+  // Auto-advance to the next source in the background when playback fails, so
+  // users never have to pick a server manually. This NEVER gives up: after a
+  // full cycle it loops back to the first source and keeps trying, waiting for
+  // any server/episode link to come alive. Every retry + fallback decision is
+  // logged as telemetry so we can confirm episodes never get permanently stuck.
   useEffect(() => {
     if (!playbackError) return;
-    if (servers.length <= 1) {
-      const t = setTimeout(() => setFinalPlaybackFailure(true), 1800);
-      return () => clearTimeout(t);
-    }
-    if (autoTries.current >= servers.length - 1) {
-      const t = setTimeout(() => setFinalPlaybackFailure(true), 1800);
-      return () => clearTimeout(t);
-    }
+    if (servers.length === 0) return;
+
     autoTries.current += 1;
+    const cycled = autoTries.current % Math.max(servers.length, 1) === 0;
+    recordAppMetric({
+      data: {
+        source: "stream",
+        name: "playback_fallback",
+        labels: {
+          episodeId: id,
+          reason: playbackError.reason,
+          fromSource: activeServer?.id ?? null,
+          attempt: autoTries.current,
+          sourceCount: servers.length,
+          cycledAll: cycled,
+        },
+      },
+    }).catch(() => {});
+    console.info("[watch] playback_fallback", {
+      episodeId: id,
+      reason: playbackError.reason,
+      attempt: autoTries.current,
+      cycledAll: cycled,
+    });
+
     const t = setTimeout(() => {
       const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
       setActiveLang(lang);
@@ -302,7 +297,8 @@ function Watch() {
       setSourceReady(false);
     }, 1200);
     return () => clearTimeout(t);
-  }, [playbackError, servers, activeLang, serverIdx]);
+  }, [playbackError, servers, activeLang, serverIdx, id, activeServer?.id]);
+
 
 
   // Show intro skip between 5-90s
@@ -317,14 +313,6 @@ function Watch() {
 
   const displayLanguage = normalizeLanguage(activeServer?.language) ?? normalizeLanguage(content?.language) ?? "Auto";
 
-  const retryAllSources = () => {
-    autoTries.current = 0;
-    setFinalPlaybackFailure(false);
-    setPlaybackError(null);
-    setServerIdx(0);
-    setActiveLang(languages[0] ?? null);
-    qc.invalidateQueries({ queryKey: ["episode-servers", id] });
-  };
 
   return (
     <div className="relative min-h-dvh bg-senpai-bg text-white overflow-x-hidden">
@@ -357,24 +345,13 @@ function Watch() {
                 <div className="max-w-lg">
                   <AlertTriangle className="mx-auto mb-4 h-9 w-9 text-senpai-amber" />
                   <div className="senpai-mega text-4xl senpai-grad-text-fire">
-                    {blocked === "banned" ? "ACCESS BLOCKED" : blocked === "rate_limited" ? "SLOW DOWN" : "STREAM SIGNAL LOST"}
+                    {blocked === "banned" ? "ACCESS BLOCKED" : "SLOW DOWN"}
                   </div>
                   <p className="mt-3 text-sm text-senpai-text-dim">
                     {blocked === "banned"
                       ? "This device has been blocked from streaming."
-                      : blocked === "rate_limited"
-                      ? "Too many stream requests — wait a moment, then try again."
-                      : playbackError?.label ?? "Every available source was tested and none responded."}
+                      : "Too many stream requests — wait a moment, then try again."}
                   </p>
-                  {blocked !== "banned" && blocked !== "rate_limited" && (
-                    <button
-                      type="button"
-                      onClick={retryAllSources}
-                      className="mt-6 rounded-full bg-gradient-to-r from-senpai-violet to-senpai-fuchsia px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-white"
-                    >
-                      Retry playback
-                    </button>
-                  )}
                 </div>
               </div>
             ) : !activeServer || !canLoadPlayer ? (
@@ -387,17 +364,16 @@ function Watch() {
                   <p className="mt-2 text-sm text-senpai-text-dim">
                     {authLoading
                       ? "Checking your viewing status."
-                      : showPreroll
-                      ? "Preparing a short sponsor message before playback."
                       : serversLoading || serversFetching || !serverData
                       ? "Checking every playable source."
                       : rawServers.length > 0
-                      ? "Still testing sources in the background."
-                      : "Searching for a playable source."}
+                      ? "Waiting for a source to respond."
+                      : "Waiting for the episode link to go live."}
                   </p>
                 </div>
               </div>
             ) : isEmbed ? (
+
               <iframe
                 key={activeServer.id}
                 src={activeServer.embed_url!}
@@ -490,7 +466,7 @@ function Watch() {
               </button>
             )}
 
-            {showPreroll && <VideoPrerollAd onComplete={() => setPrerollDone(true)} />}
+            
           </div>
 
 
@@ -515,9 +491,6 @@ function Watch() {
 
         </div>
 
-        <div className="mt-6 flex justify-center">
-          <AdBanner adKey="921c3b2b7865019cf9b9ece13ab15bf4" width={468} height={60} />
-        </div>
 
         {/* Prev/Next + Episode strip */}
         <div className="mt-6 flex items-center justify-between gap-3">

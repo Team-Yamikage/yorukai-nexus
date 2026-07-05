@@ -10,7 +10,6 @@ import {
 
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth";
-import { AdNetworkScripts } from "@/components/ads/AdNetworkScripts";
 
 function NotFoundComponent() {
   return (
@@ -83,8 +82,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "YORUKAI.TV — Stream Beyond" },
       { name: "twitter:description", content: "Cinematic anime, movies, live TV, and manga. Stream beyond on YORUKAI.TV." },
-      { property: "og:image", content: "https://anisti.vercel.app/og-image.png" },
-      { name: "twitter:image", content: "https://anisti.vercel.app/og-image.png" },
+      { property: "og:image", content: "https://yorukai-tv-trms.vercel.app/og-image.png" },
+      { name: "twitter:image", content: "https://yorukai-tv-trms.vercel.app/og-image.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -110,9 +109,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <meta name="monetag" content="96e58c613f440eae1e4d5ddb3f2a5914" />
-        <meta name="ca088e23ccb84428dad870a05694992364d52a92" content="ca088e23ccb84428dad870a05694992364d52a92" />
-        <meta name="google-adsense-account" content="ca-pub-1281450261924955" />
         <HeadContent />
       </head>
       <body>
@@ -129,7 +125,6 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AdNetworkScripts />
         <Outlet />
       </AuthProvider>
     </QueryClientProvider>
