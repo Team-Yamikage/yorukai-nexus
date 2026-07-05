@@ -354,24 +354,13 @@ function Watch() {
                 <div className="max-w-lg">
                   <AlertTriangle className="mx-auto mb-4 h-9 w-9 text-senpai-amber" />
                   <div className="senpai-mega text-4xl senpai-grad-text-fire">
-                    {blocked === "banned" ? "ACCESS BLOCKED" : blocked === "rate_limited" ? "SLOW DOWN" : "STREAM SIGNAL LOST"}
+                    {blocked === "banned" ? "ACCESS BLOCKED" : "SLOW DOWN"}
                   </div>
                   <p className="mt-3 text-sm text-senpai-text-dim">
                     {blocked === "banned"
                       ? "This device has been blocked from streaming."
-                      : blocked === "rate_limited"
-                      ? "Too many stream requests — wait a moment, then try again."
-                      : playbackError?.label ?? "Every available source was tested and none responded."}
+                      : "Too many stream requests — wait a moment, then try again."}
                   </p>
-                  {blocked !== "banned" && blocked !== "rate_limited" && (
-                    <button
-                      type="button"
-                      onClick={retryAllSources}
-                      className="mt-6 rounded-full bg-gradient-to-r from-senpai-violet to-senpai-fuchsia px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-white"
-                    >
-                      Retry playback
-                    </button>
-                  )}
                 </div>
               </div>
             ) : !activeServer || !canLoadPlayer ? (
@@ -384,17 +373,16 @@ function Watch() {
                   <p className="mt-2 text-sm text-senpai-text-dim">
                     {authLoading
                       ? "Checking your viewing status."
-                      : showPreroll
-                      ? "Preparing a short sponsor message before playback."
                       : serversLoading || serversFetching || !serverData
                       ? "Checking every playable source."
                       : rawServers.length > 0
-                      ? "Still testing sources in the background."
-                      : "Searching for a playable source."}
+                      ? "Waiting for a source to respond."
+                      : "Waiting for the episode link to go live."}
                   </p>
                 </div>
               </div>
             ) : isEmbed ? (
+
               <iframe
                 key={activeServer.id}
                 src={activeServer.embed_url!}
