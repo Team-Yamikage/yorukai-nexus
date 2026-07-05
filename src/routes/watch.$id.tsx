@@ -470,7 +470,7 @@ function Watch() {
               </button>
             )}
 
-            {showPreroll && <VideoPrerollAd onComplete={() => setPrerollDone(true)} />}
+            
           </div>
 
 
