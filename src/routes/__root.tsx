@@ -110,9 +110,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <meta name="monetag" content="96e58c613f440eae1e4d5ddb3f2a5914" />
-        <meta name="ca088e23ccb84428dad870a05694992364d52a92" content="ca088e23ccb84428dad870a05694992364d52a92" />
-        <meta name="google-adsense-account" content="ca-pub-1281450261924955" />
         <HeadContent />
       </head>
       <body>
