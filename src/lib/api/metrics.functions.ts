@@ -5,7 +5,7 @@ const MetricInput = z.object({
   source: z.string().min(1).max(64),
   name: z.string().min(1).max(96),
   value: z.number().finite().optional(),
-  labels: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
+  labels: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 });
 
 function logMetric(source: string, name: string, labels: Record<string, unknown>) {
