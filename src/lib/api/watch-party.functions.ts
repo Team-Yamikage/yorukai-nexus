@@ -6,7 +6,7 @@ const PartyInput = z.object({ partyId: z.string().uuid() });
 const EventInput = z.object({
   partyId: z.string().uuid(),
   eventType: z.enum(["play", "pause", "seek", "sync", "heartbeat"]),
-  eventPayload: z.record(z.unknown()).default({}),
+  eventPayload: z.record(z.string(), z.unknown()).default({}),
 });
 
 export const authorizeWatchPartyChannel = createServerFn({ method: "POST" })
