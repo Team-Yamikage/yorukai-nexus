@@ -314,14 +314,6 @@ function Watch() {
 
   const displayLanguage = normalizeLanguage(activeServer?.language) ?? normalizeLanguage(content?.language) ?? "Auto";
 
-  const retryAllSources = () => {
-    autoTries.current = 0;
-    setFinalPlaybackFailure(false);
-    setPlaybackError(null);
-    setServerIdx(0);
-    setActiveLang(languages[0] ?? null);
-    qc.invalidateQueries({ queryKey: ["episode-servers", id] });
-  };
 
   return (
     <div className="relative min-h-dvh bg-senpai-bg text-white overflow-x-hidden">
