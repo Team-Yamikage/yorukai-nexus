@@ -67,25 +67,8 @@ function Watch() {
     [rawServers, health, content?.language],
   );
 
-  // Probe the raw (pre-filter) candidates server-side so we can deprioritise
-  // dead sources. The browser can't HEAD cross-origin embeds (CORS), so this
-  // runs on the server.
-  useEffect(() => {
-    const candidates = rawServers
-      .filter((s) => !!s.embed_url && !isDeadHost(s.embed_url))
-      .slice(0, 20)
-      .map((s) => ({ id: s.id, url: s.embed_url! }));
-    if (candidates.length === 0) return;
-    let cancelled = false;
-    probeServers({ data: { servers: candidates } })
-      .then((res) => {
-        if (!cancelled) setHealth(res.health);
-      })
-      .catch((e) => console.warn("[watch] server health probe failed", e));
-    return () => {
-      cancelled = true;
-    };
-  }, [rawServers]);
+
+
 
 
   // Group available sources by spoken language (audio track), with the
