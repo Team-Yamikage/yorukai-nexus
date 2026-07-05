@@ -7,7 +7,6 @@ import { episodeQuery, episodeServersQuery, FALLBACK_POSTER, type ServerRow } fr
 import {
   playableServers,
   languagesOf,
-  isDeadHost,
   isEmbedUrl,
   nextServer,
   classifyPlaybackError,
@@ -45,7 +44,7 @@ export const Route = createFileRoute("/watch/$id")({
 function Watch() {
   const { id } = Route.useParams();
   const { data } = useSuspenseQuery(episodeQuery(id));
-  const { user, loading: authLoading, isPremium } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const qc = useQueryClient();
   const ep = data.episode!;
   const content = data.content;
@@ -58,7 +57,7 @@ function Watch() {
   const blocked = serverData?.blocked;
 
   // Server-side reachability results: serverId -> reachable.
-  const [health, setHealth] = useState<Record<string, boolean>>({});
+  const [health] = useState<Record<string, boolean>>({});
 
   // Only try sources that could plausibly play: http(s), not images, and not
   // known-dead/ad-redirect hosts. Probe failures only deprioritise sources.
