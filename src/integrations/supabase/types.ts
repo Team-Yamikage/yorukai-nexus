@@ -989,6 +989,25 @@ export type Database = {
         Returns: boolean
       }
       is_moderator: { Args: { _user_id: string }; Returns: boolean }
+      join_watch_party_by_code: {
+        Args: { _code: string }
+        Returns: {
+          code: string
+          content_id: string
+          created_at: string
+          episode_id: string
+          host_id: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "watch_parties"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "banned"
