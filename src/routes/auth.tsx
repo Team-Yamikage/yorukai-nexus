@@ -31,7 +31,7 @@ function AuthPage() {
 
   // Already signed in → go home
   useEffect(() => {
-    if (user) navigate({ to: next ?? "/" });
+    if (user) navigate({ to: (next ?? "/") as never });
   }, [user, navigate, next]);
 
   const signInWithGoogle = async () => {

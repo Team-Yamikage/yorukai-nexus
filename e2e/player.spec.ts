@@ -75,7 +75,7 @@ test("polls until an episode link appears instead of getting stuck in loading", 
   let calls = 0;
   await mockSupabase(page);
   await page.addInitScript(() => {
-    window.__YORUKAI_STREAM_POLL_MS = 500;
+    (window as any).__YORUKAI_STREAM_POLL_MS = 500;
   });
   await page.route(/getEpisodeServersGuarded/, async (route) => {
     calls += 1;
@@ -96,7 +96,7 @@ test("polls until an episode link appears instead of getting stuck in loading", 
 test("failing stream sources cycle and show diagnostics without stream-lost fallback", async ({ page }) => {
   await mockSupabase(page);
   await page.addInitScript(() => {
-    window.__YORUKAI_SOURCE_TIMEOUT_MS = 700;
+    (window as any).__YORUKAI_SOURCE_TIMEOUT_MS = 700;
   });
   await page.route(/bad-stream-.*\.mp4/, async (route) => {
     await route.fulfill({ status: 404, contentType: "video/mp4", body: "" });
