@@ -96,7 +96,8 @@ test("player empty visual state", async ({ page }) => {
     fulfillServerFn(route, { servers: [] }),
   );
   await page.goto(`/watch/${EPISODE_ID}`);
-  await expect(page.getByText("STREAM SIGNAL LOST")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("LOADING STREAM")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("Waiting for the episode link to go live.")).toBeVisible();
   await expect(page.locator(".aspect-video").first()).toHaveScreenshot("player-empty.png", {
     animations: "disabled",
     maxDiffPixelRatio: 0.03,

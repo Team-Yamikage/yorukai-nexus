@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Search, Bell, User } from "lucide-react";
 import logoIcon from "@/assets/logo-icon.png";
+import { useAuth } from "@/lib/auth";
 
 const NAV = [
   { to: "/", label: "Home" },
@@ -11,6 +12,10 @@ const NAV = [
 
 export function GlassNavbar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const { user, profile } = useAuth();
+  const meta = (user?.user_metadata ?? {}) as Record<string, string | undefined>;
+  const avatar = meta.avatar_url || meta.picture || profile?.avatar_url || null;
+  const name = meta.full_name || meta.name || profile?.display_name || user?.email || "Profile";
 
   return (
     <header className="sticky top-0 z-50 px-4 pt-4">
@@ -66,10 +71,16 @@ export function GlassNavbar() {
             <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-senpai-fuchsia shadow-[0_0_8px_var(--senpai-fuchsia)]" />
           </button>
           <Link
-            to="/auth"
-            className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-senpai-violet to-senpai-violet-2 text-white shadow-[0_8px_24px_-8px_var(--senpai-violet)]"
+            to={user ? "/profile" : "/auth"}
+            aria-label={user ? `Profile: ${name}` : "Sign in"}
+            title={user ? name : "Sign in"}
+            className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-senpai-violet to-senpai-violet-2 text-white shadow-[0_8px_24px_-8px_var(--senpai-violet)]"
           >
-            <User className="h-4 w-4" />
+            {avatar ? (
+              <img src={avatar} alt={name} referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+            ) : (
+              <User className="h-4 w-4" />
+            )}
           </Link>
         </div>
       </nav>

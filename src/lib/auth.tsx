@@ -8,6 +8,14 @@ type Profile = {
   avatar_url?: string | null;
 } | null;
 
+function googleProfile(user: User | null) {
+  const meta = (user?.user_metadata ?? {}) as Record<string, string | undefined>;
+  return {
+    name: meta.full_name || meta.name || meta.display_name || user?.email?.split("@")[0] || null,
+    avatar: meta.avatar_url || meta.picture || null,
+  };
+}
+
 type Ctx = {
   user: User | null;
   session: Session | null;
@@ -76,7 +84,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(([roleRes, profileRes]) => {
         if (!active) return;
         setIsAdmin(!!roleRes.data);
-        setProfile((profileRes.data as Profile) ?? null);
+        const nextProfile = (profileRes.data as Profile) ?? null;
+        setProfile(nextProfile);
+        const google = googleProfile(session.user);
+        if (
+          nextProfile &&
+          ((google.name && nextProfile.display_name !== google.name) ||
+            (google.avatar && nextProfile.avatar_url !== google.avatar))
+        ) {
+          supabase
+            .from("profiles")
+            .update({ display_name: google.name, avatar_url: google.avatar } as never)
+            .eq("user_id", uid)
+            .then(() => {});
+          setProfile({ ...nextProfile, display_name: google.name, avatar_url: google.avatar });
+        }
       })
       .finally(() => {
         if (active) setProfileLoading(false);

@@ -51,10 +51,15 @@ export function isEmbedUrl(url: string | null | undefined): boolean {
 
 /**
  * Filter a raw server list down to ones that could plausibly play:
- * must have an http(s) embed_url, must not be a dead host, must not be an image.
+ * must have an http(s) embed_url and must not be an image.
  * Health probe results only change priority. They must not remove a source:
  * some embed hosts block server-side probes but still work in the browser, and
  * the player should try every plausible source before giving up.
+ *
+ * Do not remove shortener / redirect hosts here. Some upstream episode records
+ * wrap short links inside multi-language players, and even direct redirect links
+ * may become playable after the host resolves them in-browser. Dead-host signals
+ * are used for diagnostics and retry reasons, not for hiding a potential source.
  */
 export function playableServers(
   servers: ServerRow[],
@@ -65,7 +70,6 @@ export function playableServers(
       const url = s.embed_url;
       if (!url || !/^https?:\/\//i.test(url)) return false;
       if (/\.(webp|jpg|jpeg|png|gif|svg)(\?|$)/i.test(url)) return false;
-      if (isDeadHost(url)) return false;
       return true;
     })
     .sort((a, b) => healthRank(health?.[a.id]) - healthRank(health?.[b.id]));

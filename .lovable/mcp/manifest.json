@@ -3,7 +3,11 @@
   "sdk_version": "0.20.0",
   "path": "/mcp",
   "auth": {
-    "type": "none"
+    "type": "oauth",
+    "issuer": "https://zoduthqkxhphvlldxyjr.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
   },
   "mcp": {
     "server": {
@@ -44,6 +48,37 @@
         "outputSchema": null
       },
       {
+        "name": "search_autocomplete",
+        "title": "Search autocomplete",
+        "description": "Return relevant YORUKAI.TV title and genre suggestions for an in-progress search query.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Partial text typed by the user."
+            },
+            "limit": {
+              "description": "Max suggestions per group (default 8).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
         "name": "get_content_details",
         "title": "Get content details",
         "description": "Get full details for a single YORUKAI.TV title by its id, including its episode list (season, episode number, and title).",
@@ -69,6 +104,38 @@
         "outputSchema": null
       },
       {
+        "name": "list_episodes",
+        "title": "List episodes",
+        "description": "List episodes for a YORUKAI.TV title and include whether each episode currently has playable video servers.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "contentId": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "The title/content id."
+            },
+            "limit": {
+              "description": "Max episodes (default 200).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300
+            }
+          },
+          "required": [
+            "contentId"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
         "name": "list_genres",
         "title": "List genres",
         "description": "List the content genres available on YORUKAI.TV.",
@@ -86,6 +153,144 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_watch_party",
+        "title": "Create watch party",
+        "description": "Create a signed-in user's live watch-party session for a selected episode.",
+        "annotations": {
+          "readOnlyHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "episodeId": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Episode id to watch together."
+            }
+          },
+          "required": [
+            "episodeId"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "join_watch_party",
+        "title": "Join watch party",
+        "description": "Join an active YORUKAI.TV watch-party session using its invite code.",
+        "annotations": {
+          "readOnlyHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "minLength": 4,
+              "maxLength": 16,
+              "description": "Watch-party invite code."
+            }
+          },
+          "required": [
+            "code"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "fetch_watch_party",
+        "title": "Fetch watch party",
+        "description": "Fetch a signed-in user's accessible watch-party session, membership, and recent sync events.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "partyId": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Watch-party session id."
+            },
+            "eventLimit": {
+              "description": "Max recent events (default 20).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "required": [
+            "partyId"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_continue_watching",
+        "title": "Get continue watching",
+        "description": "Fetch the signed-in user's continue-watching list with playback entitlement status.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Max items (default 20).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "requirePremium": {
+              "description": "When true, return an error unless the user is premium.",
+              "type": "boolean"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_favorites",
+        "title": "Get favorites",
+        "description": "Fetch the signed-in user's favorite/watchlist titles with playback entitlement status.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Max titles (default 50).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "requirePremium": {
+              "description": "When true, return an error unless the user is premium.",
+              "type": "boolean"
             }
           }
         },

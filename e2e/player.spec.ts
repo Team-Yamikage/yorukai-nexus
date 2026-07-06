@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * Player E2E: iframe loading, source cycling, and the final stream error.
+ * Player E2E: iframe loading, source cycling, and retry diagnostics.
  * Supabase REST and the guarded server functions are mocked so the player
  * renders deterministically without real episodes or live embed hosts.
  */
@@ -32,13 +32,6 @@ async function mockSupabase(page: Page) {
   });
 }
 
-// Mock the probeServers server fn so health probing never marks sources dead.
-async function mockProbe(page: Page) {
-  await page.route(/probeServers/, async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ health: {} }) });
-  });
-}
-
 async function mockServers(page: Page, servers: any[], blocked?: string) {
   await page.route(/getEpisodeServersGuarded/, async (route) => {
     const { toCrossJSONAsync } = await import("seroval");
@@ -57,7 +50,6 @@ async function mockServers(page: Page, servers: any[], blocked?: string) {
 
 test("player loads an embed iframe for a playable server", async ({ page }) => {
   await mockSupabase(page);
-  await mockProbe(page);
   await mockServers(page, [
     { id: "s1", episode_id: EPISODE_ID, server_name: "Vidstream", quality: "1080p", language: "English", embed_url: "https://example.com/embed/s1" },
   ]);
@@ -68,7 +60,6 @@ test("player loads an embed iframe for a playable server", async ({ page }) => {
 
 test("server cycling switches to another source", async ({ page }) => {
   await mockSupabase(page);
-  await mockProbe(page);
   await mockServers(page, [
     { id: "s1", episode_id: EPISODE_ID, server_name: "A", quality: "1080p", language: "English", embed_url: "https://example.com/embed/s1" },
     { id: "s2", episode_id: EPISODE_ID, server_name: "B", quality: "720p", language: "English", embed_url: "https://example.com/embed/s2" },
@@ -80,11 +71,41 @@ test("server cycling switches to another source", async ({ page }) => {
   await expect(frame).toHaveAttribute("src", "https://example.com/embed/s2");
 });
 
-test("shows a final stream error only after no playable sources exist", async ({ page }) => {
+test("polls until an episode link appears instead of getting stuck in loading", async ({ page }) => {
+  let calls = 0;
   await mockSupabase(page);
-  await mockProbe(page);
-  await mockServers(page, []);
+  await page.addInitScript(() => {
+    (window as any).__YORUKAI_STREAM_POLL_MS = 500;
+  });
+  await page.route(/getEpisodeServersGuarded/, async (route) => {
+    calls += 1;
+    const servers = calls < 3 ? [] : [
+      { id: "s1", episode_id: EPISODE_ID, server_name: "Late", quality: "1080p", language: "English", embed_url: "https://example.com/embed/late" },
+    ];
+    const { toCrossJSONAsync } = await import("seroval");
+    const body = await toCrossJSONAsync({ result: { servers }, error: null, context: {} }, { refs: new Map(), plugins: [] });
+    await route.fulfill({ status: 200, contentType: "application/json", headers: { "x-tss-serialized": "true" }, body: JSON.stringify(body) });
+  });
   await page.goto(`/watch/${EPISODE_ID}`);
   await expect(page.getByText("LOADING STREAM")).toBeVisible({ timeout: 5_000 });
-  await expect(page.getByText("STREAM SIGNAL LOST")).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("iframe")).toHaveAttribute("src", "https://example.com/embed/late", { timeout: 8_000 });
+  await expect(page.getByText("STREAM SIGNAL LOST")).toHaveCount(0);
+  await expect(page.getByLabel("Playback diagnostics")).toContainText("Episode link: available");
+});
+
+test("failing stream sources cycle and show diagnostics without stream-lost fallback", async ({ page }) => {
+  await mockSupabase(page);
+  await page.addInitScript(() => {
+    (window as any).__YORUKAI_SOURCE_TIMEOUT_MS = 700;
+  });
+  await page.route(/bad-stream-.*\.mp4/, async (route) => {
+    await route.fulfill({ status: 404, contentType: "video/mp4", body: "" });
+  });
+  await mockServers(page, [
+    { id: "s1", episode_id: EPISODE_ID, server_name: "A", quality: "1080p", language: "English", embed_url: "http://localhost:8080/bad-stream-1.mp4" },
+    { id: "s2", episode_id: EPISODE_ID, server_name: "B", quality: "720p", language: "English", embed_url: "http://localhost:8080/bad-stream-2.mp4" },
+  ]);
+  await page.goto(`/watch/${EPISODE_ID}`);
+  await expect(page.getByLabel("Playback diagnostics")).toContainText("Retry attempts", { timeout: 5_000 });
+  await expect(page.getByText("STREAM SIGNAL LOST")).toHaveCount(0);
 });
