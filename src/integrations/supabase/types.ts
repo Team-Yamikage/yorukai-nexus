@@ -943,6 +943,29 @@ export type Database = {
         Args: { _party_id: string; _user_id: string }
         Returns: boolean
       }
+      create_watch_party: {
+        Args: { _episode_id: string }
+        Returns: {
+          code: string
+          content_id: string
+          created_at: string
+          episode_id: string
+          host_id: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "watch_parties"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      episode_has_playable_servers: {
+        Args: { _episode_id: string }
+        Returns: boolean
+      }
       get_episode_servers: {
         Args: { _episode_id: string }
         Returns: {
