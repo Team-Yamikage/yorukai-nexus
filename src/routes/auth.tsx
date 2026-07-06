@@ -12,6 +12,11 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Stream beyond. Sign in to YORUKAI.TV with Google." },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    next: typeof search.next === "string" && search.next.startsWith("/") && !search.next.startsWith("//")
+      ? search.next
+      : undefined,
+  }),
   component: AuthPage,
 });
 
@@ -21,12 +26,13 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const { user } = useAuth();
 
   // Already signed in → go home
   useEffect(() => {
-    if (user) navigate({ to: "/" });
-  }, [user, navigate]);
+    if (user) navigate({ to: next ?? "/" });
+  }, [user, navigate, next]);
 
   const signInWithGoogle = async () => {
     setError(null);
@@ -34,7 +40,7 @@ function AuthPage() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: `${window.location.origin}/auth${next ? `?next=${encodeURIComponent(next)}` : ""}` },
       });
       if (error) throw error;
       // Redirect handled by Supabase OAuth flow.

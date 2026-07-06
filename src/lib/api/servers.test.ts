@@ -49,14 +49,14 @@ describe("media type detection", () => {
 });
 
 describe("playableServers", () => {
-  it("removes dead hosts, images and non-http", () => {
+  it("keeps redirect hosts but removes images and non-http", () => {
     const list = [
       srv({ id: "a", embed_url: "https://short.icu/x" }),
       srv({ id: "b", embed_url: "https://good.example/poster.jpg" }),
       srv({ id: "c", embed_url: "ftp://nope/x" }),
       srv({ id: "d", embed_url: "https://good.example/embed/1" }),
     ];
-    expect(playableServers(list).map((s) => s.id)).toEqual(["d"]);
+    expect(playableServers(list).map((s) => s.id)).toEqual(["a", "d"]);
   });
   it("keeps probe-failed servers but tries reachable ones first", () => {
     const list = [

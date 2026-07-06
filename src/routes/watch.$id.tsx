@@ -21,6 +21,20 @@ import { ShareButton } from "@/components/ShareButton";
 import { recordAppMetric } from "@/lib/api/metrics.functions";
 import { Watermark } from "@/components/Watermark";
 
+type DiagnosticEntry = {
+  id: number;
+  at: string;
+  event: string;
+  detail: string;
+};
+
+declare global {
+  interface Window {
+    __YORUKAI_STREAM_POLL_MS?: number;
+    __YORUKAI_SOURCE_TIMEOUT_MS?: number;
+  }
+}
+
 export const Route = createFileRoute("/watch/$id")({
   head: () => ({ meta: [{ title: "Watch — YORUKAI.TV" }] }),
   loader: async ({ context, params }) => {
@@ -52,7 +66,15 @@ function Watch() {
   // Servers are fetched through the guarded server function (ban + rate-limit
   // checks) using the per-device id.
   const deviceId = useMemo(() => getDeviceId(), []);
-  const { data: serverData, isLoading: serversLoading, isFetching: serversFetching } = useQuery(episodeServersQuery(id, deviceId));
+  const { data: serverData, isLoading: serversLoading, isFetching: serversFetching } = useQuery({
+    ...episodeServersQuery(id, deviceId),
+    refetchInterval: (query) => {
+      const current = query.state.data as { servers?: ServerRow[]; blocked?: string } | undefined;
+      if (current?.blocked === "banned" || current?.blocked === "rate_limited") return false;
+      if (!current?.servers?.length) return window.__YORUKAI_STREAM_POLL_MS ?? 15_000;
+      return false;
+    },
+  });
   const rawServers = useMemo<ServerRow[]>(() => serverData?.servers ?? [], [serverData]);
   const blocked = serverData?.blocked;
 
@@ -108,20 +130,43 @@ function Watch() {
   // User-facing playback error (sandbox / CORS / expired / dns / network).
   const [playbackError, setPlaybackError] = useState<{ reason: PlaybackErrorReason; label: string } | null>(null);
   const [finalPlaybackFailure, setFinalPlaybackFailure] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<DiagnosticEntry[]>([]);
+  const [everHadEpisodeLink, setEverHadEpisodeLink] = useState(false);
+  const [everBecameReady, setEverBecameReady] = useState(false);
+  const diagId = useRef(0);
   const sourceReadyRef = useRef(false);
   const [, setSourceReady] = useState(false);
+
+  const sourceOrdinal = useCallback(
+    (server: ServerRow | null | undefined) => {
+      if (!server) return "none";
+      const index = servers.findIndex((item) => item.id === server.id);
+      return index >= 0 ? `${index + 1}/${Math.max(servers.length, 1)}` : "unknown";
+    },
+    [servers],
+  );
+
+  const addDiagnostic = useCallback((event: string, detail: string) => {
+    setDiagnostics((items) => [
+      { id: ++diagId.current, at: new Date().toLocaleTimeString(), event, detail },
+      ...items,
+    ].slice(0, 12));
+  }, []);
 
   const markSourceReady = useCallback(() => {
     sourceReadyRef.current = true;
     setSourceReady(true);
+    setEverBecameReady(true);
+    addDiagnostic("ready", `Episode link became available on source ${sourceOrdinal(activeServer)}.`);
     setPlaybackError(null);
-  }, []);
+  }, [activeServer, addDiagnostic, sourceOrdinal]);
 
   const failActiveSource = useCallback((info: { reason: PlaybackErrorReason; label: string }) => {
     sourceReadyRef.current = false;
     setSourceReady(false);
+    addDiagnostic("retry", `Source ${sourceOrdinal(activeServer)} failed: ${info.label}`);
     setPlaybackError(info);
-  }, []);
+  }, [activeServer, addDiagnostic, sourceOrdinal]);
 
   // Cycle to the next available server across languages.
   const tryAnother = () => {
@@ -136,6 +181,7 @@ function Watch() {
         labels: { episodeId: id, sourceCount: servers.length, activeSource: activeServer?.id ?? null },
       },
     }).catch(() => {});
+    addDiagnostic("manual retry", `Viewer requested the next source after source ${sourceOrdinal(activeServer)}.`);
     const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
     setActiveLang(lang);
     setServerIdx(index);
@@ -150,6 +196,9 @@ function Watch() {
     autoTries.current = 0;
     setFinalPlaybackFailure(false);
     setPlaybackError(null);
+    setDiagnostics([]);
+    setEverHadEpisodeLink(false);
+    setEverBecameReady(false);
   }, [id, servers.length]);
 
 
@@ -166,6 +215,16 @@ function Watch() {
     setPlaybackError(null);
     setFinalPlaybackFailure(false);
   }, [id]);
+
+  useEffect(() => {
+    if (!serverData) return;
+    if (rawServers.length > 0) {
+      setEverHadEpisodeLink(true);
+      addDiagnostic("servers", `${rawServers.length} episode link${rawServers.length === 1 ? "" : "s"} found; ${servers.length} playable candidate${servers.length === 1 ? "" : "s"}.`);
+    } else {
+      addDiagnostic("polling", "No episode link returned yet; polling will continue.");
+    }
+  }, [serverData, rawServers.length, servers.length, addDiagnostic]);
 
   // No ad pre-roll: playback loads as soon as auth status is known.
   const canLoadPlayer = !authLoading;
@@ -231,7 +290,7 @@ function Watch() {
     if (!canLoadPlayer || !activeServer?.embed_url || finalPlaybackFailure) return;
     sourceReadyRef.current = false;
     setSourceReady(false);
-    const timeoutMs = isEmbed ? 18_000 : 12_000;
+    const timeoutMs = window.__YORUKAI_SOURCE_TIMEOUT_MS ?? (isEmbed ? 18_000 : 12_000);
     const t = window.setTimeout(() => {
       if (sourceReadyRef.current) return;
       failActiveSource(classifyPlaybackError({ url: activeServer.embed_url, message: "timeout" }));
@@ -290,6 +349,7 @@ function Watch() {
 
     const t = setTimeout(() => {
       const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
+      addDiagnostic("fallback", `Trying source ${sourceOrdinal(activeServer)} fallback because ${playbackError.label}`);
       setActiveLang(lang);
       setServerIdx(index);
       setPlaybackError(null);
@@ -297,7 +357,7 @@ function Watch() {
       setSourceReady(false);
     }, 1200);
     return () => clearTimeout(t);
-  }, [playbackError, servers, activeLang, serverIdx, id, activeServer?.id]);
+  }, [playbackError, servers, activeLang, serverIdx, id, activeServer, addDiagnostic, sourceOrdinal]);
 
 
 
@@ -369,6 +429,9 @@ function Watch() {
                       : rawServers.length > 0
                       ? "Waiting for a source to respond."
                       : "Waiting for the episode link to go live."}
+                  </p>
+                  <p className="mt-3 text-[11px] uppercase tracking-[0.25em] text-senpai-text-muted">
+                    Retry polling is active
                   </p>
                 </div>
               </div>
@@ -484,6 +547,34 @@ function Watch() {
               </button>
             )}
           </div>
+
+          <section className="border-t border-senpai-border p-4 sm:p-6" aria-label="Playback diagnostics">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="font-[var(--font-mono)] text-[10px] uppercase tracking-[0.3em] text-senpai-text-muted">Playback diagnostics</div>
+                <div className="mt-1 text-sm text-senpai-text-dim">
+                  Episode link: <span className={everHadEpisodeLink ? "text-senpai-teal" : "text-senpai-amber"}>{everHadEpisodeLink ? "available" : "waiting"}</span>
+                  <span className="mx-2 text-white/20">•</span>
+                  Ready: <span className={everBecameReady ? "text-senpai-teal" : "text-senpai-amber"}>{everBecameReady ? "yes" : "not yet"}</span>
+                  <span className="mx-2 text-white/20">•</span>
+                  Retry attempts: <span className="text-white">{autoTries.current}</span>
+                </div>
+              </div>
+              {serversFetching && <span className="inline-flex items-center gap-2 text-xs text-senpai-text-muted"><Loader2 className="h-3.5 w-3.5 animate-spin" /> checking links</span>}
+            </div>
+            <div className="mt-4 max-h-44 space-y-2 overflow-y-auto pr-1 senpai-scrollbar">
+              {diagnostics.length === 0 ? (
+                <p className="text-xs text-senpai-text-muted">Diagnostics will appear as sources are checked.</p>
+              ) : diagnostics.map((entry) => (
+                <div key={entry.id} className="rounded-xl bg-white/[0.03] px-3 py-2 text-xs text-senpai-text-dim ring-1 ring-white/5">
+                  <span className="font-[var(--font-mono)] text-senpai-text-muted">{entry.at}</span>
+                  <span className="mx-2 text-white/20">/</span>
+                  <span className="uppercase tracking-widest text-senpai-teal">{entry.event}</span>
+                  <span className="ml-2">{entry.detail}</span>
+                </div>
+              ))}
+            </div>
+          </section>
 
 
 

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Rows, Columns, Play, Pause } from "lucide-react";
 import { chapterPagesQuery } from "@/lib/api/manga.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +52,7 @@ function Reader() {
   const [mode, setMode] = useState<"vertical" | "horizontal">("vertical");
   const [idx, setIdx] = useState(0);
   const [autoRead, setAutoRead] = useState(false);
+  const [loadedPages, setLoadedPages] = useState(1);
   // Reading speed preference (seconds per page), saved per user/device.
   const [speed, setSpeed] = useState<number>(() => {
     if (typeof window === "undefined") return 6;
@@ -62,6 +63,29 @@ function Reader() {
   useEffect(() => {
     localStorage.setItem("yk_pref_reader_speed", String(speed));
   }, [speed]);
+
+  useEffect(() => {
+    setLoadedPages(1);
+    setIdx(0);
+  }, [id]);
+
+  useEffect(() => {
+    if (!pages?.length || mode !== "vertical") return;
+    if (loadedPages >= pages.length) return;
+    const onScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - window.innerHeight * 1.5) {
+        setLoadedPages((count) => Math.min(pages.length, count + 1));
+      }
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [pages?.length, loadedPages, mode]);
+
+  const visiblePages = useMemo(
+    () => (mode === "vertical" ? pages?.slice(0, loadedPages) : pages),
+    [pages, loadedPages, mode],
+  );
 
   // Auto-read: advance pages at the chosen speed (MangaDex/Mangaverse style).
   useEffect(() => {
@@ -184,9 +208,9 @@ function Reader() {
       {isLoading && <div className="grid place-items-center py-32 text-senpai-text-muted">Loading pages…</div>}
       {isError && <div className="grid place-items-center py-32 text-senpai-text-muted">Couldn't load this chapter.</div>}
 
-      {pages && mode === "vertical" && (
+      {visiblePages && mode === "vertical" && (
         <div ref={containerRef} className="mx-auto flex max-w-3xl flex-col">
-          {pages.map((p, i) => (
+          {visiblePages.map((p, i) => (
             <img
               key={i}
               src={p.url}
@@ -195,8 +219,12 @@ function Reader() {
               referrerPolicy="no-referrer"
               onError={(e) => onPageError(e, p.fallback)}
               className="w-full"
+              onLoad={() => setLoadedPages((count) => Math.min(pages?.length ?? count, Math.max(count, i + 2)))}
             />
           ))}
+          {pages && loadedPages < pages.length && (
+            <div className="grid place-items-center py-8 text-sm text-senpai-text-muted">Loading page {loadedPages + 1}…</div>
+          )}
         </div>
       )}
 

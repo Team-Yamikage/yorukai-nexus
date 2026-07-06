@@ -45,8 +45,8 @@ function ProfilePage() {
 
   const meta = (user?.user_metadata ?? {}) as Record<string, string | undefined>;
   const name =
-    profile?.display_name || meta.full_name || meta.name || user?.email?.split("@")[0] || "Senpai";
-  const avatar = profile?.avatar_url || meta.avatar_url || meta.picture || null;
+    meta.full_name || meta.name || meta.display_name || profile?.display_name || user?.email?.split("@")[0] || "Senpai";
+  const avatar = meta.avatar_url || meta.picture || profile?.avatar_url || null;
   const xp = profile?.xp ?? 0;
   const level = profile?.level ?? 1;
   const xpInLevel = xp % 1000;
