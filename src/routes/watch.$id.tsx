@@ -68,12 +68,7 @@ function Watch() {
   const deviceId = useMemo(() => getDeviceId(), []);
   const { data: serverData, isLoading: serversLoading, isFetching: serversFetching } = useQuery({
     ...episodeServersQuery(id, deviceId),
-    refetchInterval: (query) => {
-      const current = query.state.data as { servers?: ServerRow[]; blocked?: string } | undefined;
-      if (current?.blocked === "banned" || current?.blocked === "rate_limited") return false;
-      if (!current?.servers?.length) return window.__YORUKAI_STREAM_POLL_MS ?? 15_000;
-      return false;
-    },
+    refetchInterval: false,
   });
   const rawServers = useMemo<ServerRow[]>(() => serverData?.servers ?? [], [serverData]);
   const blocked = serverData?.blocked;
@@ -222,7 +217,7 @@ function Watch() {
       setEverHadEpisodeLink(true);
       addDiagnostic("servers", `${rawServers.length} episode link${rawServers.length === 1 ? "" : "s"} found; ${servers.length} playable candidate${servers.length === 1 ? "" : "s"}.`);
     } else {
-      addDiagnostic("polling", "No episode link returned yet; polling will continue.");
+      addDiagnostic("status", "No episode link returned yet.");
     }
   }, [serverData, rawServers.length, servers.length, addDiagnostic]);
 
@@ -334,8 +329,8 @@ function Watch() {
     
     // Recovery: if we've cycled twice and still no playback, try force-refreshing the source list
     if (autoTries.current % (Math.max(servers.length, 1) * 2) === 0) {
-      qc.invalidateQueries({ queryKey: ["episode-servers", id] });
-      addDiagnostic("watchdog", "Stuck in cycle; force-refreshing episode links...");
+      // remove polling; rely on user manual refresh or next episode transition
+      addDiagnostic("watchdog", "Stuck in cycle; you might need to refresh manually.");
     }
 
     recordAppMetric({
@@ -437,7 +432,7 @@ function Watch() {
                       : "Waiting for the episode link to go live."}
                   </p>
                   <p className="mt-3 text-[11px] uppercase tracking-[0.25em] text-senpai-text-muted">
-                    Retry polling is active
+                    Retry is active
                   </p>
                 </div>
               </div>
