@@ -217,7 +217,7 @@ function Watch() {
       setEverHadEpisodeLink(true);
       addDiagnostic("servers", `${rawServers.length} episode link${rawServers.length === 1 ? "" : "s"} found; ${servers.length} playable candidate${servers.length === 1 ? "" : "s"}.`);
     } else {
-      addDiagnostic("polling", "No episode link returned yet; polling will continue.");
+      addDiagnostic("status", "No episode link returned yet.");
     }
   }, [serverData, rawServers.length, servers.length, addDiagnostic]);
 
