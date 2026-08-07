@@ -329,8 +329,7 @@ function Watch() {
     
     // Recovery: if we've cycled twice and still no playback, try force-refreshing the source list
     if (autoTries.current % (Math.max(servers.length, 1) * 2) === 0) {
-      qc.invalidateQueries({ queryKey: ["episode-servers", id] });
-      addDiagnostic("watchdog", "Stuck in cycle; force-refreshing episode links...");
+      addDiagnostic("watchdog", "Stuck in cycle; you might need to refresh manually.");
     }
 
     recordAppMetric({
