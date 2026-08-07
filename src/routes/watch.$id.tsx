@@ -68,12 +68,7 @@ function Watch() {
   const deviceId = useMemo(() => getDeviceId(), []);
   const { data: serverData, isLoading: serversLoading, isFetching: serversFetching } = useQuery({
     ...episodeServersQuery(id, deviceId),
-    refetchInterval: (query) => {
-      const current = query.state.data as { servers?: ServerRow[]; blocked?: string } | undefined;
-      if (current?.blocked === "banned" || current?.blocked === "rate_limited") return false;
-      if (!current?.servers?.length) return window.__YORUKAI_STREAM_POLL_MS ?? 15_000;
-      return false;
-    },
+    refetchInterval: false,
   });
   const rawServers = useMemo<ServerRow[]>(() => serverData?.servers ?? [], [serverData]);
   const blocked = serverData?.blocked;
