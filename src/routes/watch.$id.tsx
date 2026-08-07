@@ -290,13 +290,17 @@ function Watch() {
     if (!canLoadPlayer || !activeServer?.embed_url || finalPlaybackFailure) return;
     sourceReadyRef.current = false;
     setSourceReady(false);
+    
+    // Watchdog: if the specific source takes too long to respond, mark it as failed
+    // to trigger the fallback cycle.
     const timeoutMs = window.__YORUKAI_SOURCE_TIMEOUT_MS ?? (isEmbed ? 18_000 : 12_000);
     const t = window.setTimeout(() => {
       if (sourceReadyRef.current) return;
+      addDiagnostic("watchdog", `Source ${sourceOrdinal(activeServer)} timed out after ${timeoutMs}ms; advancing to fallback.`);
       failActiveSource(classifyPlaybackError({ url: activeServer.embed_url, message: "timeout" }));
     }, timeoutMs);
     return () => window.clearTimeout(t);
-  }, [activeServer?.id, activeServer?.embed_url, canLoadPlayer, failActiveSource, finalPlaybackFailure, isEmbed]);
+  }, [activeServer?.id, activeServer?.embed_url, canLoadPlayer, failActiveSource, finalPlaybackFailure, isEmbed, addDiagnostic, activeServer, sourceOrdinal]);
 
   useEffect(() => {
     // Only a hard block (banned / rate-limited) is a terminal state. A missing
@@ -304,8 +308,9 @@ function Watch() {
     // cycling sources until one plays.
     if (blocked === "banned" || blocked === "rate_limited") {
       setFinalPlaybackFailure(true);
+      addDiagnostic("blocked", `Playback blocked: device is ${blocked}.`);
     }
-  }, [blocked]);
+  }, [blocked, addDiagnostic]);
 
   useEffect(() => {
     if (serverData && rawServers.length === 0) {
