@@ -73,7 +73,8 @@ function Reader() {
     if (!pages?.length || mode !== "vertical") return;
     if (loadedPages >= pages.length) return;
     const onScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - window.innerHeight * 1.5) {
+      // Load next page when current view is near the bottom
+      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - window.innerHeight * 2.5) {
         setLoadedPages((count) => Math.min(pages.length, count + 1));
       }
     };

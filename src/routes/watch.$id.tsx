@@ -326,6 +326,13 @@ function Watch() {
 
     autoTries.current += 1;
     const cycled = autoTries.current % Math.max(servers.length, 1) === 0;
+    
+    // Recovery: if we've cycled twice and still no playback, try force-refreshing the source list
+    if (autoTries.current % (Math.max(servers.length, 1) * 2) === 0) {
+      qc.invalidateQueries({ queryKey: ["episode-servers", id] });
+      addDiagnostic("watchdog", "Stuck in cycle; force-refreshing episode links...");
+    }
+
     recordAppMetric({
       data: {
         source: "stream",
@@ -340,12 +347,6 @@ function Watch() {
         },
       },
     }).catch(() => {});
-    console.info("[watch] playback_fallback", {
-      episodeId: id,
-      reason: playbackError.reason,
-      attempt: autoTries.current,
-      cycledAll: cycled,
-    });
 
     const t = setTimeout(() => {
       const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
@@ -357,7 +358,7 @@ function Watch() {
       setSourceReady(false);
     }, 1200);
     return () => clearTimeout(t);
-  }, [playbackError, servers, activeLang, serverIdx, id, activeServer, addDiagnostic, sourceOrdinal]);
+  }, [playbackError, servers, activeLang, serverIdx, id, activeServer, addDiagnostic, sourceOrdinal, qc]);
 
 
 
