@@ -431,7 +431,7 @@ function Watch() {
                       : "Waiting for the episode link to go live."}
                   </p>
                   <p className="mt-3 text-[11px] uppercase tracking-[0.25em] text-senpai-text-muted">
-                    Retry polling is active
+                    Retry is active
                   </p>
                 </div>
               </div>
