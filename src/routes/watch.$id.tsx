@@ -290,13 +290,17 @@ function Watch() {
     if (!canLoadPlayer || !activeServer?.embed_url || finalPlaybackFailure) return;
     sourceReadyRef.current = false;
     setSourceReady(false);
+    
+    // Watchdog: if the specific source takes too long to respond, mark it as failed
+    // to trigger the fallback cycle.
     const timeoutMs = window.__YORUKAI_SOURCE_TIMEOUT_MS ?? (isEmbed ? 18_000 : 12_000);
     const t = window.setTimeout(() => {
       if (sourceReadyRef.current) return;
+      addDiagnostic("watchdog", `Source ${sourceOrdinal(activeServer)} timed out after ${timeoutMs}ms; advancing to fallback.`);
       failActiveSource(classifyPlaybackError({ url: activeServer.embed_url, message: "timeout" }));
     }, timeoutMs);
     return () => window.clearTimeout(t);
-  }, [activeServer?.id, activeServer?.embed_url, canLoadPlayer, failActiveSource, finalPlaybackFailure, isEmbed]);
+  }, [activeServer?.id, activeServer?.embed_url, canLoadPlayer, failActiveSource, finalPlaybackFailure, isEmbed, addDiagnostic, activeServer, sourceOrdinal]);
 
   useEffect(() => {
     // Only a hard block (banned / rate-limited) is a terminal state. A missing
@@ -304,8 +308,9 @@ function Watch() {
     // cycling sources until one plays.
     if (blocked === "banned" || blocked === "rate_limited") {
       setFinalPlaybackFailure(true);
+      addDiagnostic("blocked", `Playback blocked: device is ${blocked}.`);
     }
-  }, [blocked]);
+  }, [blocked, addDiagnostic]);
 
   useEffect(() => {
     if (serverData && rawServers.length === 0) {
@@ -326,6 +331,13 @@ function Watch() {
 
     autoTries.current += 1;
     const cycled = autoTries.current % Math.max(servers.length, 1) === 0;
+    
+    // Recovery: if we've cycled twice and still no playback, try force-refreshing the source list
+    if (autoTries.current % (Math.max(servers.length, 1) * 2) === 0) {
+      qc.invalidateQueries({ queryKey: ["episode-servers", id] });
+      addDiagnostic("watchdog", "Stuck in cycle; force-refreshing episode links...");
+    }
+
     recordAppMetric({
       data: {
         source: "stream",
@@ -340,12 +352,6 @@ function Watch() {
         },
       },
     }).catch(() => {});
-    console.info("[watch] playback_fallback", {
-      episodeId: id,
-      reason: playbackError.reason,
-      attempt: autoTries.current,
-      cycledAll: cycled,
-    });
 
     const t = setTimeout(() => {
       const { lang, index } = nextServer(servers, { lang: activeLang, index: serverIdx });
@@ -357,7 +363,7 @@ function Watch() {
       setSourceReady(false);
     }, 1200);
     return () => clearTimeout(t);
-  }, [playbackError, servers, activeLang, serverIdx, id, activeServer, addDiagnostic, sourceOrdinal]);
+  }, [playbackError, servers, activeLang, serverIdx, id, activeServer, addDiagnostic, sourceOrdinal, qc]);
 
 
 
