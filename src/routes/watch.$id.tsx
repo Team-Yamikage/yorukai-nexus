@@ -329,6 +329,7 @@ function Watch() {
     
     // Recovery: if we've cycled twice and still no playback, try force-refreshing the source list
     if (autoTries.current % (Math.max(servers.length, 1) * 2) === 0) {
+      // remove polling; rely on user manual refresh or next episode transition
       addDiagnostic("watchdog", "Stuck in cycle; you might need to refresh manually.");
     }
 
